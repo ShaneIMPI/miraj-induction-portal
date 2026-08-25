@@ -109,10 +109,15 @@ async function createEvent({ name, code, status, eventDate, location, country, b
   return data;
 }
 
-async function updateEvent(eventId, { brandColor, logoUrl }) {
+async function updateEvent(eventId, { name, code, status, eventDate, location, brandColor, logoUrl }) {
   const payload = {};
-  if (brandColor !== undefined) payload.brand_color = brandColor;
-  if (logoUrl !== undefined) payload.logo_url = logoUrl;
+  if (name !== undefined) payload.name = name;
+  if (code !== undefined) payload.code = code.toUpperCase().replace(/\s+/g, "");
+  if (status !== undefined) payload.status = status;
+  if (eventDate !== undefined) payload.event_date = eventDate || null;
+  if (location !== undefined) payload.location = location || null;
+  if (brandColor !== undefined) payload.brand_color = brandColor || null;
+  if (logoUrl !== undefined) payload.logo_url = logoUrl; // undefined = leave untouched, null = clear it
   const { data, error } = await supabaseClient
     .from("events")
     .update(payload)
@@ -121,6 +126,24 @@ async function updateEvent(eventId, { brandColor, logoUrl }) {
     .single();
   if (error) throw error;
   return data;
+}
+
+// Deletes an event. The event_id foreign key on groups/inductees/
+// certificates has no cascade rule, so deleting an event that still has
+// people or certificates linked to it would otherwise fail outright.
+// Instead we unlink those rows first (event_id -> null) — their actual
+// induction/certificate records are preserved, only the link to this
+// (now-deleted) event is cleared — then delete the event itself.
+async function deleteEvent(eventId) {
+  await supabaseClient.from("groups").update({ event_id: null }).eq("event_id", eventId);
+  await supabaseClient.from("inductees").update({ event_id: null }).eq("event_id", eventId);
+  await supabaseClient.from("certificates").update({ event_id: null }).eq("event_id", eventId);
+
+  const { error } = await supabaseClient
+    .from("events")
+    .delete()
+    .eq("id", eventId);
+  if (error) throw error;
 }
 
 // Uploads a logo image file to the public "event-logos" Storage bucket

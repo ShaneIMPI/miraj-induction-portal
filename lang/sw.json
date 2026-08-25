@@ -120,7 +120,14 @@
     "deleteFailed": "Kufuta kumeshindikana — angalia muunganisho wako na ujaribu tena.",
     "eventColor": "Rangi ya Chapa",
     "eventLogo": "Nembo ya Tukio (hiari)",
-    "uploadingLogo": "Inapakia nembo..."
+    "uploadingLogo": "Inapakia nembo...",
+    "cancel": "Ghairi",
+    "removeLogo": "Ondoa nembo",
+    "editEvent": "Hariri Tukio",
+    "saveChanges": "Hifadhi Mabadiliko",
+    "confirmDeleteEvent": "Futa tukio hili? Hatua hii haiwezi kutenduliwa.",
+    "confirmDeleteEventWithCerts": "Tukio hili lina vyeti vilivyotolewa. Kufuta tukio hakutafuta vyeti hivyo au rekodi za wahusika — hazitaunganishwa tena na tukio hili. Endelea?",
+    "edit": "Hariri"
   },
   "quiz": {
     "correct": "Sahihi — hongera. Tunaendelea na mada inayofuata.",

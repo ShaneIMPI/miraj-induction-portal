@@ -119,7 +119,14 @@
     "deleteFailed": "Delete failed — check your connection and try again.",
     "eventColor": "Brand Colour",
     "eventLogo": "Event Logo (optional)",
-    "uploadingLogo": "Uploading logo..."
+    "uploadingLogo": "Uploading logo...",
+    "cancel": "Cancel",
+    "removeLogo": "Remove logo",
+    "editEvent": "Edit Event",
+    "saveChanges": "Save Changes",
+    "confirmDeleteEvent": "Delete this event? This cannot be undone.",
+    "confirmDeleteEventWithCerts": "This event has certificates issued against it. Deleting the event will not delete those certificates or inductee records — they'll just no longer be linked to this event. Continue?",
+    "edit": "Edit"
   },
   "quiz": {
     "correct": "Correct — well done. Moving to the next topic.",

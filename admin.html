@@ -64,7 +64,7 @@
     <!-- EVENTS PANEL -->
     <div id="panelEvents">
       <div class="card" id="eventFormCard">
-        <h3 data-i18n="admin.addEvent">Add Event</h3>
+        <h3 id="eventFormHeading" data-i18n="admin.addEvent">Add Event</h3>
         <label data-i18n="admin.eventName">Event Name</label>
         <input type="text" id="newEventName">
         <label data-i18n="admin.eventCode">Code (used in certificate numbers, e.g. DXB25)</label>
@@ -82,10 +82,20 @@
         <label data-i18n="admin.eventColor">Brand Colour</label>
         <input type="color" id="newEventColor" value="#1A347E" style="height:44px; padding:4px; cursor:pointer;">
         <label data-i18n="admin.eventLogo">Event Logo (optional)</label>
+        <div id="currentLogoPreview" class="hidden" style="display:flex; align-items:center; gap:10px; margin-bottom:8px;">
+          <img id="currentLogoImg" alt="" style="height:32px; width:auto; max-width:80px; object-fit:contain;">
+          <label style="font-weight:400; font-size:0.85rem; margin:0; display:flex; align-items:center; gap:5px;">
+            <input type="checkbox" id="removeLogoCheckbox" style="width:auto;">
+            <span data-i18n="admin.removeLogo">Remove logo</span>
+          </label>
+        </div>
         <input type="file" id="newEventLogo" accept="image/*">
         <p id="logoUploadStatus" style="font-size:0.85rem; color:var(--text-muted); margin:4px 0 0;"></p>
         <div class="field-error" id="err-newEvent" data-i18n="admin.eventFormError">Event name and code are required.</div>
-        <button class="btn btn-primary" id="addEventBtn" style="margin-top:8px;" data-i18n="admin.addEventBtn">Add Event</button>
+        <div style="display:flex; gap:10px; margin-top:8px;">
+          <button class="btn btn-primary" id="addEventBtn" style="flex:1;" data-i18n="admin.addEventBtn">Add Event</button>
+          <button class="btn btn-outline hidden" id="cancelEditBtn" style="flex:0 0 auto; width:auto; padding:10px 20px;" data-i18n="admin.cancel">Cancel</button>
+        </div>
       </div>
 
       <div class="card">
@@ -102,6 +112,7 @@
                 <th data-i18n="admin.eventLocation">Location</th>
                 <th data-i18n="admin.eventStatus">Status</th>
                 <th data-i18n="admin.certsIssued">Certificates Issued</th>
+                <th data-i18n="admin.actions">Actions</th>
               </tr>
             </thead>
             <tbody id="eventsBody"></tbody>
@@ -321,6 +332,9 @@
   });
 
   // ---------- Events ----------
+  let allEventsCache = [];
+  let editingEventId = null;
+
   function statusBadge(status) {
     const key = "admin.status" + status.charAt(0).toUpperCase() + status.slice(1);
     return `<span class="status-badge status-${status}" data-i18n="${key}">${status}</span>`;
@@ -328,12 +342,13 @@
 
   async function loadAndRenderEvents() {
     const body = document.getElementById("eventsBody");
-    body.innerHTML = `<tr><td colspan="8" style="text-align:center;"><div class="spinner"></div></td></tr>`;
+    body.innerHTML = `<tr><td colspan="9" style="text-align:center;"><div class="spinner"></div></td></tr>`;
     try {
       const events = await getAllEvents();
+      allEventsCache = events;
       body.innerHTML = "";
       if (!events.length) {
-        body.innerHTML = `<tr><td colspan="8" style="text-align:center; color:var(--text-muted);" data-i18n="admin.noEvents">No events yet — add one above.</td></tr>`;
+        body.innerHTML = `<tr><td colspan="9" style="text-align:center; color:var(--text-muted);" data-i18n="admin.noEvents">No events yet — add one above.</td></tr>`;
         applyStrings();
         return;
       }
@@ -359,6 +374,10 @@
             </select>
           </td>
           <td>${ev.cert_sequence}</td>
+          <td style="white-space:nowrap;">
+            <button type="button" class="editEventBtn" data-id="${ev.id}" style="background:none; border:none; color:var(--brand-primary); cursor:pointer; font-weight:600; margin-inline-end:10px;" data-i18n="admin.edit">Edit</button>
+            <button type="button" class="deleteEventBtn" data-id="${ev.id}" style="background:none; border:none; color:#C0392B; cursor:pointer; font-weight:600;" data-i18n="admin.delete">Delete</button>
+          </td>
         `;
         body.appendChild(tr);
       });
@@ -375,11 +394,86 @@
           sel.disabled = false;
         });
       });
+      body.querySelectorAll(".editEventBtn").forEach(btn => {
+        btn.addEventListener("click", () => {
+          const ev = allEventsCache.find(e => e.id === btn.getAttribute("data-id"));
+          if (ev) startEditEvent(ev);
+        });
+      });
+      body.querySelectorAll(".deleteEventBtn").forEach(btn => {
+        btn.addEventListener("click", async () => {
+          const ev = allEventsCache.find(e => e.id === btn.getAttribute("data-id"));
+          if (!ev) return;
+          const hasCerts = ev.cert_sequence > 0;
+          const message = hasCerts
+            ? `${t("admin.confirmDeleteEventWithCerts")}\n\n"${ev.name}" — ${ev.cert_sequence} ${t("admin.certsIssued")}`
+            : `${t("admin.confirmDeleteEvent")}\n\n"${ev.name}"`;
+          if (!confirm(message)) return;
+          btn.disabled = true;
+          try {
+            await deleteEvent(ev.id);
+            if (editingEventId === ev.id) cancelEdit();
+            await loadAndRenderEvents();
+          } catch (err) {
+            console.error(err);
+            alert(t("admin.deleteFailed"));
+            btn.disabled = false;
+          }
+        });
+      });
     } catch (err) {
       console.error(err);
-      body.innerHTML = `<tr><td colspan="8" style="text-align:center; color:#C0392B;">Could not load events.</td></tr>`;
+      body.innerHTML = `<tr><td colspan="9" style="text-align:center; color:#C0392B;">Could not load events.</td></tr>`;
     }
   }
+
+  // ---------- Edit event ----------
+  function startEditEvent(ev) {
+    editingEventId = ev.id;
+    document.getElementById("newEventName").value = ev.name || "";
+    document.getElementById("newEventCode").value = ev.code || "";
+    document.getElementById("newEventDate").value = ev.event_date || "";
+    document.getElementById("newEventLocation").value = ev.location || "";
+    document.getElementById("newEventStatus").value = ev.status || "draft";
+    document.getElementById("newEventColor").value = ev.brand_color || "#1A347E";
+    document.getElementById("newEventLogo").value = "";
+    document.getElementById("removeLogoCheckbox").checked = false;
+
+    const preview = document.getElementById("currentLogoPreview");
+    if (ev.logo_url) {
+      document.getElementById("currentLogoImg").src = ev.logo_url;
+      preview.classList.remove("hidden");
+    } else {
+      preview.classList.add("hidden");
+    }
+
+    document.getElementById("eventFormHeading").textContent = t("admin.editEvent") + `: ${ev.name}`;
+    document.getElementById("addEventBtn").textContent = t("admin.saveChanges");
+    document.getElementById("cancelEditBtn").classList.remove("hidden");
+    document.getElementById("err-newEvent").classList.remove("show");
+    document.getElementById("eventFormCard").scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  function cancelEdit() {
+    editingEventId = null;
+    document.getElementById("newEventName").value = "";
+    document.getElementById("newEventCode").value = "";
+    document.getElementById("newEventDate").value = "";
+    document.getElementById("newEventLocation").value = "";
+    document.getElementById("newEventStatus").value = "draft";
+    document.getElementById("newEventColor").value = "#1A347E";
+    document.getElementById("newEventLogo").value = "";
+    document.getElementById("removeLogoCheckbox").checked = false;
+    document.getElementById("currentLogoPreview").classList.add("hidden");
+    document.getElementById("eventFormHeading").setAttribute("data-i18n", "admin.addEvent");
+    applyStrings();
+    document.getElementById("addEventBtn").setAttribute("data-i18n", "admin.addEventBtn");
+    applyStrings();
+    document.getElementById("cancelEditBtn").classList.add("hidden");
+    document.getElementById("err-newEvent").classList.remove("show");
+  }
+
+  document.getElementById("cancelEditBtn").addEventListener("click", cancelEdit);
 
   document.getElementById("addEventBtn").addEventListener("click", async () => {
     const name = document.getElementById("newEventName").value.trim();
@@ -398,36 +492,47 @@
     btn.disabled = true;
     try {
       const logoFile = document.getElementById("newEventLogo").files[0];
-      let logoUrl = null;
+      const removeLogo = document.getElementById("removeLogoCheckbox").checked;
+      let logoUrl;
       if (logoFile) {
         statusEl.textContent = t("admin.uploadingLogo");
         logoUrl = await uploadEventLogo(logoFile, code);
         statusEl.textContent = "";
+      } else if (removeLogo) {
+        logoUrl = null;
       }
+      // else: logoUrl stays undefined — updateEvent leaves the existing
+      // logo untouched; createEvent treats undefined as "no logo" below.
 
-      await createEvent({
+      const eventFields = {
         name,
         code,
         status: document.getElementById("newEventStatus").value,
         eventDate: document.getElementById("newEventDate").value || null,
         location: document.getElementById("newEventLocation").value.trim() || null,
-        brandColor: document.getElementById("newEventColor").value,
-        logoUrl
-      });
-      document.getElementById("newEventName").value = "";
-      document.getElementById("newEventCode").value = "";
-      document.getElementById("newEventDate").value = "";
-      document.getElementById("newEventLocation").value = "";
-      document.getElementById("newEventStatus").value = "draft";
-      document.getElementById("newEventColor").value = "#1A347E";
-      document.getElementById("newEventLogo").value = "";
+        brandColor: document.getElementById("newEventColor").value
+      };
+
+      if (editingEventId) {
+        await updateEvent(editingEventId, { ...eventFields, logoUrl });
+        cancelEdit();
+      } else {
+        await createEvent({ ...eventFields, logoUrl: logoUrl || null });
+        document.getElementById("newEventName").value = "";
+        document.getElementById("newEventCode").value = "";
+        document.getElementById("newEventDate").value = "";
+        document.getElementById("newEventLocation").value = "";
+        document.getElementById("newEventStatus").value = "draft";
+        document.getElementById("newEventColor").value = "#1A347E";
+        document.getElementById("newEventLogo").value = "";
+      }
       await loadAndRenderEvents();
     } catch (err) {
       console.error(err);
       statusEl.textContent = "";
       errEl.textContent = err.message && err.message.includes("duplicate")
         ? "That event code is already in use — pick a different one."
-        : "Could not add event — check your connection and try again.";
+        : "Could not save event — check your connection and try again.";
       errEl.classList.add("show");
     }
     btn.disabled = false;
