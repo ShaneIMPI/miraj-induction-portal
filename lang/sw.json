@@ -1,0 +1,124 @@
+{
+  "dir": "ltr",
+  "meta": {
+    "name": "Kiswahili",
+    "reviewNote": "DRAFT translation — have a native Swahili speaker review before go-live."
+  },
+  "nav": {
+    "title": "Elimu ya Usalama - Miraj Media",
+    "chooseLanguage": "Chagua lugha yako"
+  },
+  "home": {
+    "heading": "Kamilisha Mafunzo Yako ya Usalama",
+    "subheading": "Tafadhali kamilisha elimu yako ya usalama kabla ya kuendelea kwenye eneo la kazi.",
+    "individualBtn": "Elimu ya Mtu Binafsi",
+    "groupBtn": "Elimu ya Kikundi",
+    "verifyLink": "Thibitisha Cheti",
+    "eyebrow": "Miraj Media · Usalama na Ulinzi wa Matukio",
+    "trust1": "Mafunzo ya usalama na ulinzi ya mada 18",
+    "trust2": "Inapatikana kwa lugha 4",
+    "trust3": "Cheti cha kidijitali kilichothibitishwa"
+  },
+  "sponsorType": {
+    "label": "Unahudhuria kama",
+    "service_provider": "Mtoa Huduma",
+    "sponsor": "Mfadhili",
+    "client_staff": "Mfanyakazi wa Mteja",
+    "other": "Nyingine"
+  },
+  "form": {
+    "fullName": "Jina Kamili",
+    "idOrPassport": "Nambari ya Kitambulisho / Pasipoti",
+    "nationality": "Utaifa",
+    "companyOrSponsor": "Jina la Kampuni / Mfadhili",
+    "roleOrTrade": "Kazi / Ufundi",
+    "contactNumber": "Nambari ya Simu",
+    "country": "Nchi",
+    "groupName": "Jina la Kikundi",
+    "numberOfMembers": "Idadi ya Wanachama",
+    "addMember": "Ongeza Mwanachama",
+    "removeMember": "Ondoa",
+    "next": "Endelea",
+    "back": "Rudi",
+    "submit": "Wasilisha na Toa Cheti",
+    "required": "Sehemu hii inahitajika"
+  },
+  "topics": {
+    "heading": "Mada za Elimu ya Usalama",
+    "instructions": "Soma kila mada, kisha jibu swali kwa usahihi ili kuendelea.",
+    "acknowledge": "Nimesoma na kuelewa sehemu hii"
+  },
+  "signature": {
+    "heading": "Sahihi",
+    "instructions": "Tafadhali tia sahihi hapa chini kuthibitisha umekamilisha elimu hii.",
+    "clear": "Futa",
+    "required": "Tafadhali toa sahihi yako kabla ya kuwasilisha"
+  },
+  "certificate": {
+    "generating": "Inatengeneza cheti chako…",
+    "success": "Elimu yako imekamilika.",
+    "download": "Pakua Cheti",
+    "certNumber": "Nambari ya Cheti",
+    "issuedTo": "Kimetolewa kwa",
+    "issuedOn": "Kimetolewa tarehe",
+    "validFor": "Kinafaa kwa",
+    "scanToVerify": "Skani kuthibitisha",
+    "retry": "Utengenezaji wa cheti umeshindwa — Jaribu Tena",
+    "title": "Cheti cha Elimu ya Usalama",
+    "statement": "Hii inathibitisha kuwa mtu aliyetajwa hapa chini amekamilisha elimu ya usalama ya Miraj Media na ameruhusiwa kuendelea eneo la kazi, kwa kuzingatia sheria zote za eneo hilo."
+  },
+  "verify": {
+    "heading": "Uthibitishaji wa Cheti",
+    "instructions": "Weka nambari ya cheti au skani msimbo wa QR kwenye cheti.",
+    "checking": "Inathibitisha cheti…",
+    "valid": "CHETI HALALI",
+    "invalid": "CHETI HAKIPATIKANI",
+    "revoked": "CHETI HIKI KIMEBATILISHWA",
+    "name": "Jina",
+    "company": "Kampuni / Mfadhili",
+    "issuedOn": "Kimetolewa tarehe",
+    "site": "Eneo / Tukio"
+  },
+  "admin": {
+    "login": "Kuingia kwa Msimamizi",
+    "email": "Barua Pepe",
+    "password": "Nywila",
+    "signIn": "Ingia",
+    "dashboard": "Dashibodi",
+    "inductees": "Waliopewa Elimu",
+    "groups": "Vikundi",
+    "export": "Hamisha CSV",
+    "logout": "Toka",
+    "eventsTab": "Matukio",
+    "inducteesTab": "Waliopitia Mafunzo",
+    "addEvent": "Ongeza Tukio",
+    "eventName": "Jina la Tukio",
+    "eventCode": "Msimbo (unaotumika kwenye namba za vyeti, mfano DXB25)",
+    "eventDate": "Tarehe",
+    "eventLocation": "Mahali",
+    "eventStatus": "Hali",
+    "statusDraft": "Rasimu",
+    "statusActive": "Inaendelea",
+    "statusCompleted": "Imekamilika",
+    "eventFormError": "Jina la tukio na msimbo vinahitajika.",
+    "addEventBtn": "Ongeza Tukio",
+    "allEvents": "Matukio Yote",
+    "certsIssued": "Vyeti Vilivyotolewa",
+    "event": "Tukio",
+    "searchPlaceholder": "Tafuta kwa jina, kitambulisho, au kampuni...",
+    "search": "Tafuta",
+    "clear": "Futa",
+    "noResults": "Hakuna matokeo",
+    "noEvents": "Hakuna matukio bado — ongeza moja hapo juu.",
+    "eventCodeShort": "Msimbo"
+  },
+  "quiz": {
+    "correct": "Sahihi — hongera. Tunaendelea na mada inayofuata.",
+    "incorrect": "Sio sahihi kabisa — angalia tena na ujaribu tena."
+  },
+  "events": {
+    "heading": "Chagua Tukio Lako",
+    "instructions": "Chagua tukio unalohudhuria. Kama hulioni kwenye orodha, wasiliana na msimamizi wa eneo lako.",
+    "none": "Hakuna matukio yanayoendelea kwa sasa. Tafadhali wasiliana na mratibu wa tukio."
+  }
+}

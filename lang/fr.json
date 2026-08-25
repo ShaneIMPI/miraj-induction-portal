@@ -1,0 +1,124 @@
+{
+  "dir": "ltr",
+  "meta": {
+    "name": "Français",
+    "reviewNote": "DRAFT translation — have a native French speaker review before go-live."
+  },
+  "nav": {
+    "title": "Induction Sécurité - Miraj Media",
+    "chooseLanguage": "Choisissez votre langue"
+  },
+  "home": {
+    "heading": "Complétez votre induction sécurité",
+    "subheading": "Veuillez compléter votre induction sécurité avant de vous rendre sur le site.",
+    "individualBtn": "Induction Individuelle",
+    "groupBtn": "Induction de Groupe",
+    "verifyLink": "Vérifier un certificat",
+    "eyebrow": "Miraj Media · Sécurité & Sûreté Événementielle",
+    "trust1": "Induction sécurité et sûreté en 18 sujets",
+    "trust2": "Disponible en 4 langues",
+    "trust3": "Certificat numérique vérifié"
+  },
+  "sponsorType": {
+    "label": "Vous vous présentez en tant que",
+    "service_provider": "Prestataire de Services",
+    "sponsor": "Sponsor",
+    "client_staff": "Personnel du Client",
+    "other": "Autre"
+  },
+  "form": {
+    "fullName": "Nom Complet",
+    "idOrPassport": "Numéro de CNI / Passeport",
+    "nationality": "Nationalité",
+    "companyOrSponsor": "Nom de la Société / Sponsor",
+    "roleOrTrade": "Fonction / Métier",
+    "contactNumber": "Numéro de Contact",
+    "country": "Pays",
+    "groupName": "Nom du Groupe",
+    "numberOfMembers": "Nombre de Membres",
+    "addMember": "Ajouter un Membre",
+    "removeMember": "Retirer",
+    "next": "Suivant",
+    "back": "Retour",
+    "submit": "Envoyer et Générer le Certificat",
+    "required": "Ce champ est obligatoire"
+  },
+  "topics": {
+    "heading": "Thèmes de l'Induction Sécurité",
+    "instructions": "Lisez chaque sujet, puis répondez correctement à la question pour continuer.",
+    "acknowledge": "J'ai lu et compris cette section"
+  },
+  "signature": {
+    "heading": "Signature",
+    "instructions": "Veuillez signer ci-dessous pour confirmer que vous avez terminé cette induction.",
+    "clear": "Effacer",
+    "required": "Veuillez fournir votre signature avant de soumettre"
+  },
+  "certificate": {
+    "generating": "Génération de votre certificat…",
+    "success": "Votre induction est terminée.",
+    "download": "Télécharger le Certificat",
+    "certNumber": "Numéro de Certificat",
+    "issuedTo": "Délivré à",
+    "issuedOn": "Délivré le",
+    "validFor": "Valable pour",
+    "scanToVerify": "Scanner pour vérifier",
+    "retry": "Échec de la génération du certificat — Réessayer",
+    "title": "Certificat d'Induction Sécurité",
+    "statement": "Ceci certifie que la personne nommée ci-dessous a complété l'induction sécurité de Miraj Media et est autorisée à se rendre sur le site, sous réserve du respect de toutes les règles du site."
+  },
+  "verify": {
+    "heading": "Vérification du Certificat",
+    "instructions": "Entrez un numéro de certificat ou scannez le code QR figurant sur le certificat.",
+    "checking": "Vérification du certificat…",
+    "valid": "CERTIFICAT VALIDE",
+    "invalid": "CERTIFICAT INTROUVABLE",
+    "revoked": "CE CERTIFICAT A ÉTÉ RÉVOQUÉ",
+    "name": "Nom",
+    "company": "Société / Sponsor",
+    "issuedOn": "Délivré le",
+    "site": "Site / Événement"
+  },
+  "admin": {
+    "login": "Connexion Administrateur",
+    "email": "E-mail",
+    "password": "Mot de Passe",
+    "signIn": "Se Connecter",
+    "dashboard": "Tableau de Bord",
+    "inductees": "Personnes Inscrites",
+    "groups": "Groupes",
+    "export": "Exporter en CSV",
+    "logout": "Se Déconnecter",
+    "eventsTab": "Événements",
+    "inducteesTab": "Participants",
+    "addEvent": "Ajouter un événement",
+    "eventName": "Nom de l'événement",
+    "eventCode": "Code (utilisé dans les numéros de certificat, ex. DXB25)",
+    "eventDate": "Date",
+    "eventLocation": "Lieu",
+    "eventStatus": "Statut",
+    "statusDraft": "Brouillon",
+    "statusActive": "Actif",
+    "statusCompleted": "Terminé",
+    "eventFormError": "Le nom et le code de l'événement sont requis.",
+    "addEventBtn": "Ajouter l'événement",
+    "allEvents": "Tous les événements",
+    "certsIssued": "Certificats émis",
+    "event": "Événement",
+    "searchPlaceholder": "Rechercher par nom, ID ou entreprise...",
+    "search": "Rechercher",
+    "clear": "Effacer",
+    "noResults": "Aucun résultat",
+    "noEvents": "Aucun événement pour le moment — ajoutez-en un ci-dessus.",
+    "eventCodeShort": "Code"
+  },
+  "quiz": {
+    "correct": "Correct — bravo. Passage au sujet suivant.",
+    "incorrect": "Pas tout à fait — regardez à nouveau et réessayez."
+  },
+  "events": {
+    "heading": "Sélectionnez votre événement",
+    "instructions": "Choisissez l'événement auquel vous participez. Si vous ne le voyez pas dans la liste, vérifiez auprès de votre superviseur de site.",
+    "none": "Il n'y a aucun événement actif pour le moment. Veuillez vérifier auprès de l'organisateur."
+  }
+}

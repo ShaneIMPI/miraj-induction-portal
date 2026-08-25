@@ -1,0 +1,123 @@
+{
+  "dir": "ltr",
+  "meta": {
+    "name": "English"
+  },
+  "nav": {
+    "title": "Miraj Media Safety Induction",
+    "chooseLanguage": "Choose your language"
+  },
+  "home": {
+    "heading": "Complete Your Safety Induction",
+    "subheading": "Please complete your safety induction before proceeding to site.",
+    "individualBtn": "Individual Induction",
+    "groupBtn": "Group Induction",
+    "verifyLink": "Verify a certificate",
+    "eyebrow": "Miraj Media · Event Safety & Security",
+    "trust1": "18-topic safety & security induction",
+    "trust2": "Available in 4 languages",
+    "trust3": "Verified digital certificate"
+  },
+  "sponsorType": {
+    "label": "You are attending as a",
+    "service_provider": "Service Provider",
+    "sponsor": "Sponsor",
+    "client_staff": "Client Staff",
+    "other": "Other"
+  },
+  "form": {
+    "fullName": "Full Name",
+    "idOrPassport": "ID / Passport Number",
+    "nationality": "Nationality",
+    "companyOrSponsor": "Company / Sponsor Name",
+    "roleOrTrade": "Role / Trade",
+    "contactNumber": "Contact Number",
+    "country": "Country",
+    "groupName": "Group Name",
+    "numberOfMembers": "Number of Members",
+    "addMember": "Add Member",
+    "removeMember": "Remove",
+    "next": "Next",
+    "back": "Back",
+    "submit": "Submit & Generate Certificate",
+    "required": "This field is required"
+  },
+  "topics": {
+    "heading": "Safety Induction Topics",
+    "instructions": "Read each topic, then answer the question correctly to continue.",
+    "acknowledge": "I have read and understood this section"
+  },
+  "signature": {
+    "heading": "Signature",
+    "instructions": "Please sign below to confirm you have completed this induction.",
+    "clear": "Clear",
+    "required": "Please provide your signature before submitting"
+  },
+  "certificate": {
+    "generating": "Generating your certificate…",
+    "success": "Your induction is complete.",
+    "download": "Download Certificate",
+    "certNumber": "Certificate Number",
+    "issuedTo": "Issued to",
+    "issuedOn": "Issued on",
+    "validFor": "Valid for",
+    "scanToVerify": "Scan to verify",
+    "retry": "Certificate generation failed — Retry",
+    "title": "Certificate of Safety Induction",
+    "statement": "This certifies that the person named below has completed the Miraj Media safety induction and is authorised to proceed to site, subject to compliance with all site rules."
+  },
+  "verify": {
+    "heading": "Certificate Verification",
+    "instructions": "Enter a certificate number or scan the QR code on the certificate.",
+    "checking": "Checking certificate…",
+    "valid": "VALID CERTIFICATE",
+    "invalid": "CERTIFICATE NOT FOUND",
+    "revoked": "THIS CERTIFICATE HAS BEEN REVOKED",
+    "name": "Name",
+    "company": "Company / Sponsor",
+    "issuedOn": "Issued on",
+    "site": "Site / Event"
+  },
+  "admin": {
+    "login": "Admin Login",
+    "email": "Email",
+    "password": "Password",
+    "signIn": "Sign In",
+    "dashboard": "Dashboard",
+    "inductees": "Inductees",
+    "groups": "Groups",
+    "export": "Export CSV",
+    "logout": "Log Out",
+    "eventsTab": "Events",
+    "inducteesTab": "Inductees",
+    "addEvent": "Add Event",
+    "eventName": "Event Name",
+    "eventCode": "Code (used in certificate numbers, e.g. DXB25)",
+    "eventDate": "Date",
+    "eventLocation": "Location",
+    "eventStatus": "Status",
+    "statusDraft": "Draft",
+    "statusActive": "Active",
+    "statusCompleted": "Completed",
+    "eventFormError": "Event name and code are required.",
+    "addEventBtn": "Add Event",
+    "allEvents": "All Events",
+    "certsIssued": "Certificates Issued",
+    "event": "Event",
+    "searchPlaceholder": "Search by name, ID, or company...",
+    "search": "Search",
+    "clear": "Clear",
+    "noResults": "No results",
+    "noEvents": "No events yet — add one above.",
+    "eventCodeShort": "Code"
+  },
+  "quiz": {
+    "correct": "Correct — well done. Moving to the next topic.",
+    "incorrect": "Not quite — have another look and try again."
+  },
+  "events": {
+    "heading": "Select Your Event",
+    "instructions": "Choose the event you're attending. If you don't see it listed, check with your site supervisor.",
+    "none": "There are no active events right now. Please check with your event organiser."
+  }
+}

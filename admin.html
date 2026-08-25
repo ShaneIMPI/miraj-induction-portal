@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Admin — Miraj Media Induction Portal</title>
+<link rel="stylesheet" href="css/styles.css">
+<style>
+  table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+  th, td { text-align: left; padding: 8px 6px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+  .table-scroll { overflow-x: auto; }
+  .admin-tabs { display: flex; gap: 8px; margin-bottom: 16px; }
+  .admin-tab {
+    padding: 10px 18px; border-radius: 999px; border: 2px solid var(--border);
+    background: #fff; color: var(--text-muted); font-weight: 700; font-size: 0.9rem;
+    cursor: pointer; font-family: inherit;
+  }
+  .admin-tab.active { background: var(--brand-primary); color: #fff; border-color: var(--brand-primary); }
+  .status-badge { display: inline-block; padding: 3px 10px; border-radius: 999px; font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.02em; }
+  .status-draft { background: #EFEFEF; color: #666; }
+  .status-active { background: #DFF5E6; color: #1E7A3D; }
+  .status-completed { background: #E4E9F5; color: var(--brand-primary); }
+  .status-select { font-size: 0.78rem; padding: 4px 8px; border-radius: 8px; border: 1px solid var(--border); }
+  #eventFormCard input, #eventFormCard select { margin-bottom: 10px; }
+  .search-row { display: flex; gap: 10px; margin-bottom: 14px; }
+  .search-row input { flex: 1; margin-bottom: 0; }
+</style>
+</head>
+<body>
+
+<header class="app-header">
+  <div class="brand">
+    <img src="assets/logo-miraj.png" alt="Miraj Media" class="logo" onerror="this.style.display='none'">
+    <span>Admin — Miraj Media Induction Portal</span>
+  </div>
+</header>
+
+<main class="container" style="max-width:1100px;">
+
+  <section id="loginCard" class="card">
+    <h2 data-i18n="admin.login">Admin Login</h2>
+    <label data-i18n="admin.email">Email</label>
+    <input type="text" id="loginEmail" autocomplete="username">
+    <label data-i18n="admin.password">Password</label>
+    <input type="text" id="loginPassword" autocomplete="current-password" style="-webkit-text-security: disc;">
+    <button class="btn btn-primary" id="loginBtn" style="margin-top:16px;" data-i18n="admin.signIn">Sign In</button>
+    <p id="loginError" style="color:#C0392B; display:none;"></p>
+  </section>
+
+  <section id="dashboard" class="hidden">
+    <div class="card" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+      <h2 style="margin:0;" data-i18n="admin.dashboard">Dashboard</h2>
+      <div>
+        <button class="btn btn-outline" id="exportBtn" style="display:inline-block; width:auto; padding:10px 16px;" data-i18n="admin.export">Export CSV</button>
+        <button class="btn btn-outline" id="logoutBtn" style="display:inline-block; width:auto; padding:10px 16px;" data-i18n="admin.logout">Log Out</button>
+      </div>
+    </div>
+
+    <div class="admin-tabs">
+      <button class="admin-tab active" id="tabEvents" data-i18n="admin.eventsTab">Events</button>
+      <button class="admin-tab" id="tabInductees" data-i18n="admin.inducteesTab">Inductees</button>
+    </div>
+
+    <!-- EVENTS PANEL -->
+    <div id="panelEvents">
+      <div class="card" id="eventFormCard">
+        <h3 data-i18n="admin.addEvent">Add Event</h3>
+        <label data-i18n="admin.eventName">Event Name</label>
+        <input type="text" id="newEventName">
+        <label data-i18n="admin.eventCode">Code (used in certificate numbers, e.g. DXB25)</label>
+        <input type="text" id="newEventCode" style="text-transform:uppercase;">
+        <label data-i18n="admin.eventDate">Date</label>
+        <input type="date" id="newEventDate">
+        <label data-i18n="admin.eventLocation">Location</label>
+        <input type="text" id="newEventLocation">
+        <label data-i18n="admin.eventStatus">Status</label>
+        <select id="newEventStatus">
+          <option value="draft" data-i18n="admin.statusDraft">Draft</option>
+          <option value="active" data-i18n="admin.statusActive">Active</option>
+          <option value="completed" data-i18n="admin.statusCompleted">Completed</option>
+        </select>
+        <div class="field-error" id="err-newEvent" data-i18n="admin.eventFormError">Event name and code are required.</div>
+        <button class="btn btn-primary" id="addEventBtn" style="margin-top:8px;" data-i18n="admin.addEventBtn">Add Event</button>
+      </div>
+
+      <div class="card">
+        <h3 data-i18n="admin.allEvents">All Events</h3>
+        <div class="table-scroll">
+          <table id="eventsTable">
+            <thead>
+              <tr>
+                <th data-i18n="admin.eventName">Event Name</th>
+                <th data-i18n="admin.eventCodeShort">Code</th>
+                <th data-i18n="admin.eventDate">Date</th>
+                <th data-i18n="admin.eventLocation">Location</th>
+                <th data-i18n="admin.eventStatus">Status</th>
+                <th data-i18n="admin.certsIssued">Certificates Issued</th>
+              </tr>
+            </thead>
+            <tbody id="eventsBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- INDUCTEES PANEL -->
+    <div id="panelInductees" class="hidden">
+      <div class="card">
+        <h3 data-i18n="admin.inductees">Inductees</h3>
+        <div class="search-row">
+          <input type="text" id="searchInput" data-i18n-placeholder="admin.searchPlaceholder" placeholder="Search by name, ID, or company...">
+          <button class="btn btn-outline" id="searchBtn" style="width:auto; padding:10px 16px;" data-i18n="admin.search">Search</button>
+          <button class="btn btn-outline" id="clearSearchBtn" style="width:auto; padding:10px 16px; display:none;" data-i18n="admin.clear">Clear</button>
+        </div>
+        <div class="table-scroll">
+          <table id="inducteesTable">
+            <thead>
+              <tr>
+                <th>Name</th><th>ID/Passport</th><th>Company/Sponsor</th><th>Type</th>
+                <th data-i18n="admin.event">Event</th><th>Country</th><th>Language</th><th>Date</th>
+              </tr>
+            </thead>
+            <tbody id="inducteesBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/config.js"></script>
+<script src="js/i18n.js"></script>
+<script src="js/supabase-client.js"></script>
+<script>
+  const SESSION_KEY = "mm_admin_session";
+
+  // ---------- Tabs ----------
+  document.getElementById("tabEvents").addEventListener("click", () => switchTab("events"));
+  document.getElementById("tabInductees").addEventListener("click", () => switchTab("inductees"));
+
+  function switchTab(tab) {
+    document.getElementById("tabEvents").classList.toggle("active", tab === "events");
+    document.getElementById("tabInductees").classList.toggle("active", tab === "inductees");
+    document.getElementById("panelEvents").classList.toggle("hidden", tab !== "events");
+    document.getElementById("panelInductees").classList.toggle("hidden", tab !== "inductees");
+    if (tab === "inductees") loadAndRenderInductees();
+  }
+
+  // ---------- Inductees ----------
+  async function loadInductees() {
+    const { data, error } = await supabaseClient
+      .from("inductees")
+      .select(`*, events ( name, code )`)
+      .order("created_at", { ascending: false })
+      .limit(500);
+    if (error) { console.error(error); return []; }
+    return data;
+  }
+
+  function eventLabel(r) {
+    if (r.events && r.events.name) return r.events.name;
+    return r.site_or_event || "-";
+  }
+
+  function renderInductees(rows) {
+    const body = document.getElementById("inducteesBody");
+    body.innerHTML = "";
+    if (!rows.length) {
+      body.innerHTML = `<tr><td colspan="8" style="text-align:center; color:var(--text-muted);" data-i18n="admin.noResults">No results</td></tr>`;
+      applyStrings();
+      return;
+    }
+    rows.forEach(r => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${r.full_name}</td>
+        <td>${r.id_or_passport_number}</td>
+        <td>${r.company_or_sponsor}</td>
+        <td>${r.sponsor_type}</td>
+        <td>${eventLabel(r)}</td>
+        <td>${r.country || "-"}</td>
+        <td>${r.induction_language}</td>
+        <td>${new Date(r.induction_date).toLocaleDateString()}</td>
+      `;
+      body.appendChild(tr);
+    });
+  }
+
+  async function loadAndRenderInductees() {
+    const rows = await loadInductees();
+    renderInductees(rows);
+  }
+
+  function toCsv(rows) {
+    const headers = ["full_name","id_or_passport_number","company_or_sponsor","sponsor_type","site_or_event","country","induction_language","induction_date"];
+    const lines = [headers.join(",")];
+    rows.forEach(r => {
+      const line = headers.map(h => `"${String(r[h] ?? "").replace(/"/g, '""')}"`).join(",");
+      lines.push(line);
+    });
+    return lines.join("\n");
+  }
+
+  document.getElementById("exportBtn").addEventListener("click", async () => {
+    const rows = await loadInductees();
+    const csv = toCsv(rows);
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `miraj-inductees-${new Date().toISOString().slice(0,10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  });
+
+  // ---------- Search ----------
+  async function runSearch() {
+    const term = document.getElementById("searchInput").value.trim();
+    if (!term) { loadAndRenderInductees(); return; }
+    document.getElementById("inducteesBody").innerHTML = `<tr><td colspan="8" style="text-align:center;"><div class="spinner"></div></td></tr>`;
+    try {
+      const rows = await searchInductees(term, 200);
+      renderInductees(rows);
+      document.getElementById("clearSearchBtn").style.display = "inline-block";
+    } catch (err) {
+      console.error(err);
+      document.getElementById("inducteesBody").innerHTML = `<tr><td colspan="8" style="text-align:center; color:#C0392B;">Search failed — check your connection.</td></tr>`;
+    }
+  }
+
+  document.getElementById("searchBtn").addEventListener("click", runSearch);
+  document.getElementById("searchInput").addEventListener("keydown", (e) => {
+    if (e.key === "Enter") runSearch();
+  });
+  document.getElementById("clearSearchBtn").addEventListener("click", () => {
+    document.getElementById("searchInput").value = "";
+    document.getElementById("clearSearchBtn").style.display = "none";
+    loadAndRenderInductees();
+  });
+
+  // ---------- Events ----------
+  function statusBadge(status) {
+    const key = "admin.status" + status.charAt(0).toUpperCase() + status.slice(1);
+    return `<span class="status-badge status-${status}" data-i18n="${key}">${status}</span>`;
+  }
+
+  async function loadAndRenderEvents() {
+    const body = document.getElementById("eventsBody");
+    body.innerHTML = `<tr><td colspan="6" style="text-align:center;"><div class="spinner"></div></td></tr>`;
+    try {
+      const events = await getAllEvents();
+      body.innerHTML = "";
+      if (!events.length) {
+        body.innerHTML = `<tr><td colspan="6" style="text-align:center; color:var(--text-muted);" data-i18n="admin.noEvents">No events yet — add one above.</td></tr>`;
+        applyStrings();
+        return;
+      }
+      events.forEach(ev => {
+        const tr = document.createElement("tr");
+        const dateStr = ev.event_date ? new Date(ev.event_date).toLocaleDateString() : "-";
+        tr.innerHTML = `
+          <td>${ev.name}</td>
+          <td>${ev.code}</td>
+          <td>${dateStr}</td>
+          <td>${ev.location || "-"}</td>
+          <td>
+            <select class="status-select" data-event-id="${ev.id}">
+              <option value="draft" ${ev.status === "draft" ? "selected" : ""}>Draft</option>
+              <option value="active" ${ev.status === "active" ? "selected" : ""}>Active</option>
+              <option value="completed" ${ev.status === "completed" ? "selected" : ""}>Completed</option>
+            </select>
+          </td>
+          <td>${ev.cert_sequence}</td>
+        `;
+        body.appendChild(tr);
+      });
+      body.querySelectorAll(".status-select").forEach(sel => {
+        sel.addEventListener("change", async () => {
+          const eventId = sel.getAttribute("data-event-id");
+          sel.disabled = true;
+          try {
+            await updateEventStatus(eventId, sel.value);
+          } catch (err) {
+            console.error(err);
+            alert("Could not update status — check your connection and try again.");
+          }
+          sel.disabled = false;
+        });
+      });
+    } catch (err) {
+      console.error(err);
+      body.innerHTML = `<tr><td colspan="6" style="text-align:center; color:#C0392B;">Could not load events.</td></tr>`;
+    }
+  }
+
+  document.getElementById("addEventBtn").addEventListener("click", async () => {
+    const name = document.getElementById("newEventName").value.trim();
+    const code = document.getElementById("newEventCode").value.trim();
+    const errEl = document.getElementById("err-newEvent");
+    errEl.classList.remove("show");
+
+    if (!name || !code) {
+      errEl.classList.add("show");
+      return;
+    }
+
+    const btn = document.getElementById("addEventBtn");
+    btn.disabled = true;
+    try {
+      await createEvent({
+        name,
+        code,
+        status: document.getElementById("newEventStatus").value,
+        eventDate: document.getElementById("newEventDate").value || null,
+        location: document.getElementById("newEventLocation").value.trim() || null
+      });
+      document.getElementById("newEventName").value = "";
+      document.getElementById("newEventCode").value = "";
+      document.getElementById("newEventDate").value = "";
+      document.getElementById("newEventLocation").value = "";
+      document.getElementById("newEventStatus").value = "draft";
+      await loadAndRenderEvents();
+    } catch (err) {
+      console.error(err);
+      errEl.textContent = err.message && err.message.includes("duplicate")
+        ? "That event code is already in use — pick a different one."
+        : "Could not add event — check your connection and try again.";
+      errEl.classList.add("show");
+    }
+    btn.disabled = false;
+  });
+
+  // ---------- Login ----------
+  document.getElementById("loginBtn").addEventListener("click", async () => {
+    const email = document.getElementById("loginEmail").value.trim();
+    const password = document.getElementById("loginPassword").value;
+    const errEl = document.getElementById("loginError");
+    errEl.style.display = "none";
+
+    const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+    if (error) {
+      errEl.textContent = error.message;
+      errEl.style.display = "block";
+      return;
+    }
+    showDashboard();
+  });
+
+  document.getElementById("logoutBtn").addEventListener("click", async () => {
+    await supabaseClient.auth.signOut();
+    location.reload();
+  });
+
+  async function showDashboard() {
+    document.getElementById("loginCard").classList.add("hidden");
+    document.getElementById("dashboard").classList.remove("hidden");
+    await loadAndRenderEvents();
+  }
+
+  (async () => {
+    await loadLanguage(getSavedOrDefaultLanguage());
+    const { data: { session } } = await supabaseClient.auth.getSession();
+    if (session) showDashboard();
+  })();
+</script>
+</body>
+</html>

@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Miraj Media — Safety Induction</title>
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+<header class="app-header">
+  <div class="brand">
+    <img src="assets/logo-miraj.png" alt="Miraj Media" class="logo" onerror="this.style.display='none'">
+    <span data-i18n="nav.title">Miraj Media Safety Induction</span>
+  </div>
+  <div class="lang-switcher">
+    <select id="langSelect" aria-label="Choose language"></select>
+  </div>
+</header>
+
+<section class="hero" id="heroSection">
+  <div class="hero-inner">
+    <div class="hero-eyebrow" data-i18n="home.eyebrow">Miraj Media &middot; Event Safety &amp; Security</div>
+    <h1 data-i18n="home.heading">Welcome</h1>
+    <p class="subheading" data-i18n="home.subheading">Please complete your safety induction before proceeding to site.</p>
+    <div class="hero-actions">
+      <a class="btn btn-accent" href="induction.html?type=individual" data-i18n="home.individualBtn">Individual Induction</a>
+      <a class="btn btn-outline-light" href="induction.html?type=group" data-i18n="home.groupBtn">Group Induction</a>
+    </div>
+  </div>
+</section>
+
+<div class="trust-strip">
+  <span>
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 2l8 4v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6l8-4z"/></svg>
+    <span data-i18n="home.trust1">18-topic safety &amp; security induction</span>
+  </span>
+  <span>
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M3 5h18M3 12h18M3 19h18"/></svg>
+    <span data-i18n="home.trust2">Available in 4 languages</span>
+  </span>
+  <span>
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M9 12l2 2 4-4M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+    <span data-i18n="home.trust3">Verified digital certificate</span>
+  </span>
+</div>
+
+<main class="container">
+  <a class="link-quiet" href="verify.html" data-i18n="home.verifyLink">Verify a certificate</a>
+</main>
+
+<footer class="app-footer">Miraj Media &middot; Safety Induction Portal</footer>
+
+<script src="js/config.js"></script>
+<script src="js/i18n.js"></script>
+<script>
+  function buildLangSwitcher() {
+    const sel = document.getElementById("langSelect");
+    sel.innerHTML = "";
+    SUPPORTED_LANGUAGES.forEach(code => {
+      const opt = document.createElement("option");
+      opt.value = code;
+      opt.textContent = code.toUpperCase();
+      sel.appendChild(opt);
+    });
+    sel.value = getSavedOrDefaultLanguage();
+    sel.addEventListener("change", () => loadLanguage(sel.value));
+  }
+
+  function applyHeroImage() {
+    if (typeof BRAND !== "undefined" && BRAND.heroImage) {
+      const hero = document.getElementById("heroSection");
+      // Set directly on the element (not via a CSS custom property) so the
+      // relative path resolves against THIS page's location, not the
+      // stylesheet's. If the file doesn't exist yet, the image layer just
+      // fails to paint and the gradient underneath still shows — nothing
+      // looks broken either way.
+      const gradient = "linear-gradient(165deg, rgba(10,20,52,0.62) 0%, rgba(13,28,68,0.42) 50%, rgba(200,80,35,0.22) 100%)";
+      hero.style.backgroundImage = `${gradient}, url('${BRAND.heroImage}')`;
+    }
+  }
+
+  (async () => {
+    applyHeroImage();
+    buildLangSwitcher();
+    await loadLanguage(getSavedOrDefaultLanguage());
+  })();
+</script>
+</body>
+</html>

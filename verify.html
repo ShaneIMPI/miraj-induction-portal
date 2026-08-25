@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Verify Certificate — Miraj Media</title>
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+<header class="app-header">
+  <div class="brand">
+    <img src="assets/logo-miraj.png" alt="Miraj Media" class="logo" onerror="this.style.display='none'">
+    <span data-i18n="nav.title">Miraj Media Safety Induction</span>
+  </div>
+  <div class="lang-switcher">
+    <select id="langSelect" aria-label="Choose language"></select>
+  </div>
+</header>
+
+<main class="container">
+  <div class="card">
+    <h2 data-i18n="verify.heading">Certificate Verification</h2>
+    <p class="subheading" data-i18n="verify.instructions">Enter a certificate number or scan the QR code on the certificate.</p>
+    <label data-i18n="certificate.certNumber">Certificate Number</label>
+    <input type="text" id="certInput" placeholder="MM-DXB25-0001">
+    <button class="btn btn-primary" id="checkBtn" style="margin-top:14px;">Check</button>
+  </div>
+
+  <div id="resultWrap"></div>
+</main>
+
+<footer class="app-footer">Miraj Media &middot; Safety Induction Portal</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/config.js"></script>
+<script src="js/i18n.js"></script>
+<script src="js/supabase-client.js"></script>
+<script>
+  function buildLangSwitcher() {
+    const sel = document.getElementById("langSelect");
+    sel.innerHTML = "";
+    SUPPORTED_LANGUAGES.forEach(code => {
+      const opt = document.createElement("option");
+      opt.value = code;
+      opt.textContent = code.toUpperCase();
+      sel.appendChild(opt);
+    });
+    sel.value = getSavedOrDefaultLanguage();
+    sel.addEventListener("change", () => loadLanguage(sel.value));
+  }
+
+  function renderResult(record) {
+    const wrap = document.getElementById("resultWrap");
+    if (!record) {
+      wrap.innerHTML = `<div class="status-banner status-invalid">${t("verify.invalid")}</div>`;
+      return;
+    }
+    if (!record.valid) {
+      wrap.innerHTML = `<div class="status-banner status-invalid">${t("verify.revoked")}</div>`;
+      return;
+    }
+    const inductee = record.inductees;
+    const eventName = (record.events && record.events.name) || inductee.site_or_event || "-";
+    wrap.innerHTML = `
+      <div class="status-banner status-valid">${t("verify.valid")}</div>
+      <div class="card">
+        <p class="cert-meta"><strong>${t("verify.name")}:</strong> ${inductee.full_name}</p>
+        <p class="cert-meta"><strong>${t("verify.company")}:</strong> ${inductee.company_or_sponsor}</p>
+        <p class="cert-meta"><strong>${t("verify.site")}:</strong> ${eventName}</p>
+        <p class="cert-meta"><strong>${t("verify.issuedOn")}:</strong> ${new Date(record.issued_at).toLocaleDateString()}</p>
+        <p class="cert-meta"><strong>${t("certificate.certNumber")}:</strong> ${record.certificate_number}</p>
+      </div>
+    `;
+    bumpVerifiedCount(record.id, record.verified_count).catch(() => {});
+  }
+
+  async function checkCertificate(value) {
+    const wrap = document.getElementById("resultWrap");
+    wrap.innerHTML = `<div class="spinner"></div><p style="text-align:center;">${t("verify.checking")}</p>`;
+    try {
+      const record = await verifyByCertificateNumber(value);
+      renderResult(record);
+    } catch (err) {
+      console.error(err);
+      wrap.innerHTML = `<div class="status-banner status-invalid">${t("verify.invalid")}</div>`;
+    }
+  }
+
+  async function checkByToken(token) {
+    const wrap = document.getElementById("resultWrap");
+    wrap.innerHTML = `<div class="spinner"></div><p style="text-align:center;">${t("verify.checking")}</p>`;
+    try {
+      const record = await verifyByToken(token);
+      renderResult(record);
+    } catch (err) {
+      console.error(err);
+      wrap.innerHTML = `<div class="status-banner status-invalid">${t("verify.invalid")}</div>`;
+    }
+  }
+
+  document.getElementById("checkBtn").addEventListener("click", () => {
+    const val = document.getElementById("certInput").value.trim();
+    if (val) checkCertificate(val);
+  });
+
+  (async () => {
+    buildLangSwitcher();
+    await loadLanguage(getSavedOrDefaultLanguage());
+
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get("token");
+    if (token) await checkByToken(token);
+  })();
+</script>
+</body>
+</html>

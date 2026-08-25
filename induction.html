@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Safety Induction — Miraj Media</title>
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+<header class="app-header">
+  <div class="brand">
+    <img src="assets/logo-miraj.png" alt="Miraj Media" class="logo" onerror="this.style.display='none'">
+    <span data-i18n="nav.title">Miraj Media Safety Induction</span>
+  </div>
+  <div class="lang-switcher">
+    <select id="langSelect" aria-label="Choose language"></select>
+  </div>
+</header>
+
+<main class="container">
+
+  <div class="step-indicator" id="stepIndicator"></div>
+
+  <!-- STEP: Event selection -->
+  <section id="stepEvent" class="card hidden">
+    <h2 data-i18n="events.heading">Select Your Event</h2>
+    <p class="subheading" data-i18n="events.instructions">Choose the event you're attending. If you don't see it listed, check with your site supervisor.</p>
+    <div id="eventList"></div>
+    <p id="noActiveEvents" class="hidden" data-i18n="events.none">There are no active events right now. Please check with your event organiser.</p>
+  </section>
+
+  <!-- STEP: Details -->
+  <section id="stepDetails" class="card hidden">
+    <h2 id="detailsHeading" data-i18n="home.individualBtn">Individual Induction</h2>
+
+    <label data-i18n="sponsorType.label">You are attending as a</label>
+    <div class="radio-group" id="sponsorTypeGroup"></div>
+
+    <div id="groupOnlyFields" class="hidden">
+      <label data-i18n="form.groupName">Group Name</label>
+      <input type="text" id="groupName" data-i18n-placeholder="form.groupName">
+    </div>
+
+    <label data-i18n="form.companyOrSponsor">Company / Sponsor Name</label>
+    <input type="text" id="companyOrSponsor" data-i18n-placeholder="form.companyOrSponsor">
+    <div class="field-error" id="err-companyOrSponsor" data-i18n="form.required"></div>
+
+    <label data-i18n="form.country">Country</label>
+    <select id="country">
+      <option value="Bahrain">Bahrain</option>
+      <option value="Saudi Arabia">Saudi Arabia</option>
+      <option value="Qatar">Qatar</option>
+      <option value="UAE">United Arab Emirates</option>
+      <option value="Nigeria">Nigeria</option>
+      <option value="Kenya">Kenya</option>
+      <option value="Ghana">Ghana</option>
+      <option value="Other">Other</option>
+    </select>
+
+    <div id="individualOnlyFields">
+      <label data-i18n="form.fullName">Full Name</label>
+      <input type="text" id="fullName" data-i18n-placeholder="form.fullName">
+      <div class="field-error" id="err-fullName" data-i18n="form.required"></div>
+
+      <label data-i18n="form.idOrPassport">ID / Passport Number</label>
+      <input type="text" id="idOrPassport" data-i18n-placeholder="form.idOrPassport">
+      <div class="field-error" id="err-idOrPassport" data-i18n="form.required"></div>
+
+      <label data-i18n="form.nationality">Nationality</label>
+      <input type="text" id="nationality" data-i18n-placeholder="form.nationality">
+
+      <label data-i18n="form.roleOrTrade">Role / Trade</label>
+      <input type="text" id="roleOrTrade" data-i18n-placeholder="form.roleOrTrade">
+
+      <label data-i18n="form.contactNumber">Contact Number</label>
+      <input type="tel" id="contactNumber" data-i18n-placeholder="form.contactNumber">
+    </div>
+
+    <button class="btn btn-primary" id="detailsNextBtn" style="margin-top:20px;" data-i18n="form.next">Next</button>
+  </section>
+
+  <!-- STEP: Group members list (group flow only) -->
+  <section id="stepMembers" class="card hidden">
+    <h2 data-i18n="form.numberOfMembers">Number of Members</h2>
+    <div id="membersList"></div>
+    <button class="btn btn-outline" id="addMemberBtn" data-i18n="form.addMember">Add Member</button>
+    <button class="btn btn-primary" id="membersNextBtn" data-i18n="form.next">Next</button>
+  </section>
+
+  <!-- STEP: Topics (shown once per person being inducted) -->
+  <section id="stepTopics" class="card hidden">
+    <h2 data-i18n="topics.heading">Safety Induction Topics</h2>
+    <p class="subheading" data-i18n="topics.instructions">Read each topic, then answer the question correctly to continue.</p>
+    <div id="topicProgress" class="topic-progress"></div>
+    <div id="topicsList"></div>
+
+    <div id="quizBlock" class="quiz-block hidden">
+      <p id="quizQuestion" class="quiz-question"></p>
+      <div id="quizFeedback" class="quiz-feedback hidden"></div>
+      <div class="quiz-answers">
+        <button type="button" class="quiz-answer" id="quizAnswerA">
+          <img class="quiz-image" id="quizImageA" alt="">
+          <span class="quiz-answer-text" id="quizTextA"></span>
+        </button>
+        <button type="button" class="quiz-answer" id="quizAnswerB">
+          <img class="quiz-image" id="quizImageB" alt="">
+          <span class="quiz-answer-text" id="quizTextB"></span>
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- STEP: Signature -->
+  <section id="stepSignature" class="card hidden">
+    <h2 data-i18n="signature.heading">Signature</h2>
+    <p class="subheading" data-i18n="signature.instructions">Please sign below to confirm you have completed this induction.</p>
+    <div class="sig-wrap"><canvas id="sigPad"></canvas></div>
+    <div class="field-error" id="err-signature" data-i18n="signature.required"></div>
+    <button class="btn btn-outline" id="clearSigBtn" data-i18n="signature.clear" style="margin-top:12px;">Clear</button>
+    <button class="btn btn-primary" id="submitBtn" data-i18n="form.submit">Submit &amp; Generate Certificate</button>
+  </section>
+
+  <!-- STEP: Certificate -->
+  <section id="stepCertificate" class="card hidden">
+    <div id="certGenerating" style="text-align:center;">
+      <div class="spinner"></div>
+      <p data-i18n="certificate.generating">Generating your certificate…</p>
+    </div>
+    <div id="certResult" class="hidden">
+      <div class="cert-box">
+        <div class="cert-title" data-i18n="certificate.title">Certificate of Safety Induction</div>
+        <div class="cert-name" id="certName"></div>
+        <div class="cert-meta"><span data-i18n="certificate.certNumber">Certificate Number</span>: <span id="certNumber"></span></div>
+        <div class="cert-meta"><span data-i18n="certificate.issuedOn">Issued on</span>: <span id="certDate"></span></div>
+        <div id="qrCanvas"></div>
+        <div class="cert-meta" data-i18n="certificate.scanToVerify">Scan to verify</div>
+      </div>
+      <button class="btn btn-primary" id="downloadCertBtn" style="margin-top:16px;" data-i18n="certificate.download">Download Certificate</button>
+      <button class="btn btn-accent hidden" id="nextMemberBtn" data-i18n="form.next">Next</button>
+      <a class="link-quiet" href="index.html" id="doneLink">Home</a>
+    </div>
+    <div id="certError" class="hidden" style="text-align:center;">
+      <p style="color:#C0392B; font-weight:700;" data-i18n="certificate.retry">Certificate generation failed — Retry</p>
+      <button class="btn btn-primary" id="retryCertBtn" data-i18n="certificate.retry">Retry</button>
+    </div>
+  </section>
+
+</main>
+
+<footer class="app-footer">Miraj Media &middot; Safety Induction Portal</footer>
+
+<!-- CDN libraries -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+<script src="js/config.js"></script>
+<script src="js/i18n.js"></script>
+<script src="js/supabase-client.js"></script>
+<script src="js/certificate.js"></script>
+<script src="js/induction-flow.js"></script>
+</body>
+</html>
