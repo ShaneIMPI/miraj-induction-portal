@@ -22,6 +22,7 @@
   "sponsorType": {
     "label": "Unahudhuria kama",
     "service_provider": "Mtoa Huduma",
+    "contractor": "Mkandarasi",
     "sponsor": "Mfadhili",
     "client_staff": "Mfanyakazi wa Mteja",
     "other": "Nyingine"
@@ -110,7 +111,16 @@
     "clear": "Futa",
     "noResults": "Hakuna matokeo",
     "noEvents": "Hakuna matukio bado — ongeza moja hapo juu.",
-    "eventCodeShort": "Msimbo"
+    "eventCodeShort": "Msimbo",
+    "actions": "Vitendo",
+    "delete": "Futa",
+    "deleteSelected": "Futa Vilivyochaguliwa",
+    "confirmDeleteOne": "Futa rekodi hii ya mhusika? Hatua hii haiwezi kutenduliwa.",
+    "confirmDeleteMany": "Futa rekodi za wahusika zilizochaguliwa? Hatua hii haiwezi kutenduliwa.",
+    "deleteFailed": "Kufuta kumeshindikana — angalia muunganisho wako na ujaribu tena.",
+    "eventColor": "Rangi ya Chapa",
+    "eventLogo": "Nembo ya Tukio (hiari)",
+    "uploadingLogo": "Inapakia nembo..."
   },
   "quiz": {
     "correct": "Sahihi — hongera. Tunaendelea na mada inayofuata.",
@@ -119,6 +129,7 @@
   "events": {
     "heading": "Chagua Tukio Lako",
     "instructions": "Chagua tukio unalohudhuria. Kama hulioni kwenye orodha, wasiliana na msimamizi wa eneo lako.",
-    "none": "Hakuna matukio yanayoendelea kwa sasa. Tafadhali wasiliana na mratibu wa tukio."
+    "none": "Hakuna matukio yanayoendelea kwa sasa. Tafadhali wasiliana na mratibu wa tukio.",
+    "changeEvent": "Badilisha tukio"
   }
 }

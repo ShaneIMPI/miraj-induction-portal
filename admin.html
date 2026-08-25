@@ -29,10 +29,10 @@
 <body>
 
 <header class="app-header">
-  <div class="brand">
+  <a class="brand" href="index.html">
     <img src="assets/logo-miraj.png" alt="Miraj Media" class="logo" onerror="this.style.display='none'">
     <span>Admin — Miraj Media Induction Portal</span>
-  </div>
+  </a>
 </header>
 
 <main class="container" style="max-width:1100px;">
@@ -79,6 +79,11 @@
           <option value="active" data-i18n="admin.statusActive">Active</option>
           <option value="completed" data-i18n="admin.statusCompleted">Completed</option>
         </select>
+        <label data-i18n="admin.eventColor">Brand Colour</label>
+        <input type="color" id="newEventColor" value="#1A347E" style="height:44px; padding:4px; cursor:pointer;">
+        <label data-i18n="admin.eventLogo">Event Logo (optional)</label>
+        <input type="file" id="newEventLogo" accept="image/*">
+        <p id="logoUploadStatus" style="font-size:0.85rem; color:var(--text-muted); margin:4px 0 0;"></p>
         <div class="field-error" id="err-newEvent" data-i18n="admin.eventFormError">Event name and code are required.</div>
         <button class="btn btn-primary" id="addEventBtn" style="margin-top:8px;" data-i18n="admin.addEventBtn">Add Event</button>
       </div>
@@ -89,6 +94,8 @@
           <table id="eventsTable">
             <thead>
               <tr>
+                <th data-i18n="admin.eventLogo">Logo</th>
+                <th data-i18n="admin.eventColor">Colour</th>
                 <th data-i18n="admin.eventName">Event Name</th>
                 <th data-i18n="admin.eventCodeShort">Code</th>
                 <th data-i18n="admin.eventDate">Date</th>
@@ -112,12 +119,17 @@
           <button class="btn btn-outline" id="searchBtn" style="width:auto; padding:10px 16px;" data-i18n="admin.search">Search</button>
           <button class="btn btn-outline" id="clearSearchBtn" style="width:auto; padding:10px 16px; display:none;" data-i18n="admin.clear">Clear</button>
         </div>
+        <div style="display:flex; align-items:center; gap:12px; margin:10px 0;">
+          <button class="btn btn-outline" id="deleteSelectedBtn" style="width:auto; padding:8px 14px; display:none; border-color:#C0392B; color:#C0392B;" data-i18n="admin.deleteSelected">Delete Selected</button>
+        </div>
         <div class="table-scroll">
           <table id="inducteesTable">
             <thead>
               <tr>
+                <th><input type="checkbox" id="selectAllCheckbox"></th>
                 <th>Name</th><th>ID/Passport</th><th>Company/Sponsor</th><th>Type</th>
                 <th data-i18n="admin.event">Event</th><th>Country</th><th>Language</th><th>Date</th>
+                <th data-i18n="admin.actions">Actions</th>
               </tr>
             </thead>
             <tbody id="inducteesBody"></tbody>
@@ -168,14 +180,17 @@
   function renderInductees(rows) {
     const body = document.getElementById("inducteesBody");
     body.innerHTML = "";
+    document.getElementById("selectAllCheckbox").checked = false;
+    updateDeleteSelectedBtn();
     if (!rows.length) {
-      body.innerHTML = `<tr><td colspan="8" style="text-align:center; color:var(--text-muted);" data-i18n="admin.noResults">No results</td></tr>`;
+      body.innerHTML = `<tr><td colspan="10" style="text-align:center; color:var(--text-muted);" data-i18n="admin.noResults">No results</td></tr>`;
       applyStrings();
       return;
     }
     rows.forEach(r => {
       const tr = document.createElement("tr");
       tr.innerHTML = `
+        <td><input type="checkbox" class="rowCheckbox" data-id="${r.id}"></td>
         <td>${r.full_name}</td>
         <td>${r.id_or_passport_number}</td>
         <td>${r.company_or_sponsor}</td>
@@ -184,10 +199,74 @@
         <td>${r.country || "-"}</td>
         <td>${r.induction_language}</td>
         <td>${new Date(r.induction_date).toLocaleDateString()}</td>
+        <td><button type="button" class="deleteRowBtn" data-id="${r.id}" data-name="${r.full_name}" style="background:none; border:none; color:#C0392B; cursor:pointer; font-weight:600;" data-i18n="admin.delete">Delete</button></td>
       `;
       body.appendChild(tr);
     });
+    applyStrings();
+    attachRowHandlers();
   }
+
+  function getSelectedIds() {
+    return Array.from(document.querySelectorAll(".rowCheckbox:checked")).map(cb => cb.getAttribute("data-id"));
+  }
+
+  function updateDeleteSelectedBtn() {
+    const count = getSelectedIds().length;
+    const btn = document.getElementById("deleteSelectedBtn");
+    if (count > 0) {
+      btn.style.display = "inline-block";
+      btn.textContent = `${t("admin.deleteSelected")} (${count})`;
+    } else {
+      btn.style.display = "none";
+    }
+  }
+
+  function attachRowHandlers() {
+    document.querySelectorAll(".rowCheckbox").forEach(cb => {
+      cb.addEventListener("change", updateDeleteSelectedBtn);
+    });
+    document.querySelectorAll(".deleteRowBtn").forEach(btn => {
+      btn.addEventListener("click", async () => {
+        const id = btn.getAttribute("data-id");
+        const name = btn.getAttribute("data-name");
+        if (!confirm(`${t("admin.confirmDeleteOne")}\n\n${name}`)) return;
+        try {
+          await deleteInductee(id);
+          if (document.getElementById("searchInput").value.trim()) {
+            runSearch();
+          } else {
+            loadAndRenderInductees();
+          }
+        } catch (err) {
+          console.error(err);
+          alert(t("admin.deleteFailed"));
+        }
+      });
+    });
+  }
+
+  document.getElementById("selectAllCheckbox").addEventListener("change", (e) => {
+    document.querySelectorAll(".rowCheckbox").forEach(cb => { cb.checked = e.target.checked; });
+    updateDeleteSelectedBtn();
+  });
+
+  document.getElementById("deleteSelectedBtn").addEventListener("click", async () => {
+    const ids = getSelectedIds();
+    if (ids.length === 0) return;
+    if (!confirm(`${t("admin.confirmDeleteMany")}\n\n${ids.length} record(s) selected.`)) return;
+    try {
+      await deleteInductees(ids);
+      if (document.getElementById("searchInput").value.trim()) {
+        runSearch();
+      } else {
+        loadAndRenderInductees();
+      }
+    } catch (err) {
+      console.error(err);
+      alert(t("admin.deleteFailed"));
+    }
+  });
 
   async function loadAndRenderInductees() {
     const rows = await loadInductees();
@@ -220,14 +299,14 @@
   async function runSearch() {
     const term = document.getElementById("searchInput").value.trim();
     if (!term) { loadAndRenderInductees(); return; }
-    document.getElementById("inducteesBody").innerHTML = `<tr><td colspan="8" style="text-align:center;"><div class="spinner"></div></td></tr>`;
+    document.getElementById("inducteesBody").innerHTML = `<tr><td colspan="10" style="text-align:center;"><div class="spinner"></div></td></tr>`;
     try {
       const rows = await searchInductees(term, 200);
       renderInductees(rows);
       document.getElementById("clearSearchBtn").style.display = "inline-block";
     } catch (err) {
       console.error(err);
-      document.getElementById("inducteesBody").innerHTML = `<tr><td colspan="8" style="text-align:center; color:#C0392B;">Search failed — check your connection.</td></tr>`;
+      document.getElementById("inducteesBody").innerHTML = `<tr><td colspan="10" style="text-align:center; color:#C0392B;">Search failed — check your connection.</td></tr>`;
     }
   }
 
@@ -249,19 +328,25 @@
 
   async function loadAndRenderEvents() {
     const body = document.getElementById("eventsBody");
-    body.innerHTML = `<tr><td colspan="6" style="text-align:center;"><div class="spinner"></div></td></tr>`;
+    body.innerHTML = `<tr><td colspan="8" style="text-align:center;"><div class="spinner"></div></td></tr>`;
     try {
       const events = await getAllEvents();
       body.innerHTML = "";
       if (!events.length) {
-        body.innerHTML = `<tr><td colspan="6" style="text-align:center; color:var(--text-muted);" data-i18n="admin.noEvents">No events yet — add one above.</td></tr>`;
+        body.innerHTML = `<tr><td colspan="8" style="text-align:center; color:var(--text-muted);" data-i18n="admin.noEvents">No events yet — add one above.</td></tr>`;
         applyStrings();
         return;
       }
       events.forEach(ev => {
         const tr = document.createElement("tr");
         const dateStr = ev.event_date ? new Date(ev.event_date).toLocaleDateString() : "-";
+        const logoCell = ev.logo_url
+          ? `<img src="${ev.logo_url}" alt="${ev.name} logo" style="height:32px; width:auto; max-width:60px; object-fit:contain;">`
+          : `<span style="color:var(--text-muted);">-</span>`;
+        const swatch = `<span style="display:inline-block; width:20px; height:20px; border-radius:4px; background:${ev.brand_color || "#ccc"}; border:1px solid rgba(0,0,0,0.15);" title="${ev.brand_color || ""}"></span>`;
         tr.innerHTML = `
+          <td>${logoCell}</td>
+          <td>${swatch}</td>
           <td>${ev.name}</td>
           <td>${ev.code}</td>
           <td>${dateStr}</td>
@@ -292,7 +377,7 @@
       });
     } catch (err) {
       console.error(err);
-      body.innerHTML = `<tr><td colspan="6" style="text-align:center; color:#C0392B;">Could not load events.</td></tr>`;
+      body.innerHTML = `<tr><td colspan="8" style="text-align:center; color:#C0392B;">Could not load events.</td></tr>`;
     }
   }
 
@@ -300,7 +385,9 @@
     const name = document.getElementById("newEventName").value.trim();
     const code = document.getElementById("newEventCode").value.trim();
     const errEl = document.getElementById("err-newEvent");
+    const statusEl = document.getElementById("logoUploadStatus");
     errEl.classList.remove("show");
+    statusEl.textContent = "";
 
     if (!name || !code) {
       errEl.classList.add("show");
@@ -310,21 +397,34 @@
     const btn = document.getElementById("addEventBtn");
     btn.disabled = true;
     try {
+      const logoFile = document.getElementById("newEventLogo").files[0];
+      let logoUrl = null;
+      if (logoFile) {
+        statusEl.textContent = t("admin.uploadingLogo");
+        logoUrl = await uploadEventLogo(logoFile, code);
+        statusEl.textContent = "";
+      }
+
       await createEvent({
         name,
         code,
         status: document.getElementById("newEventStatus").value,
         eventDate: document.getElementById("newEventDate").value || null,
-        location: document.getElementById("newEventLocation").value.trim() || null
+        location: document.getElementById("newEventLocation").value.trim() || null,
+        brandColor: document.getElementById("newEventColor").value,
+        logoUrl
       });
       document.getElementById("newEventName").value = "";
       document.getElementById("newEventCode").value = "";
       document.getElementById("newEventDate").value = "";
       document.getElementById("newEventLocation").value = "";
       document.getElementById("newEventStatus").value = "draft";
+      document.getElementById("newEventColor").value = "#1A347E";
+      document.getElementById("newEventLogo").value = "";
       await loadAndRenderEvents();
     } catch (err) {
       console.error(err);
+      statusEl.textContent = "";
       errEl.textContent = err.message && err.message.includes("duplicate")
         ? "That event code is already in use — pick a different one."
         : "Could not add event — check your connection and try again.";

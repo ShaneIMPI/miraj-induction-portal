@@ -9,10 +9,10 @@
 <body>
 
 <header class="app-header">
-  <div class="brand">
+  <a class="brand" href="index.html">
     <img src="assets/logo-miraj.png" alt="Miraj Media" class="logo" onerror="this.style.display='none'">
     <span data-i18n="nav.title">Miraj Media Safety Induction</span>
-  </div>
+  </a>
   <div class="lang-switcher">
     <select id="langSelect" aria-label="Choose language"></select>
   </div>
@@ -32,6 +32,7 @@
 
   <!-- STEP: Details -->
   <section id="stepDetails" class="card hidden">
+    <button type="button" id="backToEventBtn" class="step-back-btn"><span class="step-back-arrow" aria-hidden="true">&larr;</span> <span data-i18n="events.changeEvent">Change event</span></button>
     <h2 id="detailsHeading" data-i18n="home.individualBtn">Individual Induction</h2>
 
     <label data-i18n="sponsorType.label">You are attending as a</label>
@@ -128,7 +129,8 @@
       <p data-i18n="certificate.generating">Generating your certificate…</p>
     </div>
     <div id="certResult" class="hidden">
-      <div class="cert-box">
+      <div class="cert-box" id="certBox">
+        <img id="certLogo" class="cert-logo hidden" alt="">
         <div class="cert-title" data-i18n="certificate.title">Certificate of Safety Induction</div>
         <div class="cert-name" id="certName"></div>
         <div class="cert-meta"><span data-i18n="certificate.certNumber">Certificate Number</span>: <span id="certNumber"></span></div>

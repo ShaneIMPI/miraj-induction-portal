@@ -22,6 +22,7 @@
   "sponsorType": {
     "label": "Vous vous présentez en tant que",
     "service_provider": "Prestataire de Services",
+    "contractor": "Entrepreneur",
     "sponsor": "Sponsor",
     "client_staff": "Personnel du Client",
     "other": "Autre"
@@ -110,7 +111,16 @@
     "clear": "Effacer",
     "noResults": "Aucun résultat",
     "noEvents": "Aucun événement pour le moment — ajoutez-en un ci-dessus.",
-    "eventCodeShort": "Code"
+    "eventCodeShort": "Code",
+    "actions": "Actions",
+    "delete": "Supprimer",
+    "deleteSelected": "Supprimer la sélection",
+    "confirmDeleteOne": "Supprimer cette fiche de participant ? Cette action est irréversible.",
+    "confirmDeleteMany": "Supprimer les fiches de participants sélectionnées ? Cette action est irréversible.",
+    "deleteFailed": "Échec de la suppression — vérifiez votre connexion et réessayez.",
+    "eventColor": "Couleur de marque",
+    "eventLogo": "Logo de l'événement (facultatif)",
+    "uploadingLogo": "Téléversement du logo..."
   },
   "quiz": {
     "correct": "Correct — bravo. Passage au sujet suivant.",
@@ -119,6 +129,7 @@
   "events": {
     "heading": "Sélectionnez votre événement",
     "instructions": "Choisissez l'événement auquel vous participez. Si vous ne le voyez pas dans la liste, vérifiez auprès de votre superviseur de site.",
-    "none": "Il n'y a aucun événement actif pour le moment. Veuillez vérifier auprès de l'organisateur."
+    "none": "Il n'y a aucun événement actif pour le moment. Veuillez vérifier auprès de l'organisateur.",
+    "changeEvent": "Changer d'événement"
   }
 }

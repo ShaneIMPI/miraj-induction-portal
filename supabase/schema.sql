@@ -13,7 +13,7 @@
 create table if not exists groups (
   id uuid primary key default gen_random_uuid(),
   group_name text not null,
-  sponsor_type text not null check (sponsor_type in ('service_provider','sponsor','client_staff','other')),
+  sponsor_type text not null check (sponsor_type in ('service_provider','contractor','sponsor','client_staff','other')),
   sponsor_company text not null,
   site_or_event text,
   country text,               -- e.g. Bahrain, Saudi Arabia, Qatar, UAE, Nigeria, Kenya, Ghana
@@ -29,7 +29,7 @@ create table if not exists inductees (
   id_or_passport_number text not null,
   nationality text,
   company_or_sponsor text not null,
-  sponsor_type text not null check (sponsor_type in ('service_provider','sponsor','client_staff','other')),
+  sponsor_type text not null check (sponsor_type in ('service_provider','contractor','sponsor','client_staff','other')),
   role_or_trade text,
   contact_number text,
   site_or_event text,
@@ -81,12 +81,42 @@ create table if not exists events (
   event_date date,
   location text,
   country text,
+  brand_color text,              -- hex colour e.g. '#1A347E' — used for event card accent + certificate border/title
+  logo_url text,                 -- public URL of the event's logo in the 'event-logos' storage bucket
   cert_sequence integer not null default 0,
   created_at timestamptz not null default now()
 );
 
 create index if not exists idx_events_status on events(status);
 alter table events disable row level security;
+
+-- Storage bucket for per-event logos, uploaded from the admin panel when
+-- adding/editing an event. Public bucket so the logo can be shown on the
+-- public event-selection page and on generated certificates without auth.
+-- Only authenticated (admin) users may upload/change/delete files in it.
+insert into storage.buckets (id, name, public)
+values ('event-logos', 'event-logos', true)
+on conflict (id) do nothing;
+
+drop policy if exists "Public read access for event logos" on storage.objects;
+create policy "Public read access for event logos"
+on storage.objects for select
+using (bucket_id = 'event-logos');
+
+drop policy if exists "Authenticated upload for event logos" on storage.objects;
+create policy "Authenticated upload for event logos"
+on storage.objects for insert
+with check (bucket_id = 'event-logos' and auth.role() = 'authenticated');
+
+drop policy if exists "Authenticated update for event logos" on storage.objects;
+create policy "Authenticated update for event logos"
+on storage.objects for update
+using (bucket_id = 'event-logos' and auth.role() = 'authenticated');
+
+drop policy if exists "Authenticated delete for event logos" on storage.objects;
+create policy "Authenticated delete for event logos"
+on storage.objects for delete
+using (bucket_id = 'event-logos' and auth.role() = 'authenticated');
 
 -- Atomically increments and returns the next certificate sequence
 -- number for an event. Using a DB function (not read-then-write in

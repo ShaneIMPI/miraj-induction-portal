@@ -66,6 +66,12 @@ body.rtl {
   font-weight: 600;
   font-size: 1rem;
   color: var(--brand-primary);
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.app-header .brand:hover {
+  opacity: 0.85;
 }
 
 .app-header img.logo {
@@ -202,6 +208,24 @@ h1 { font-size: 1.5rem; margin: 8px 0 4px; }
 h2 { font-size: 1.15rem; margin: 0 0 10px; }
 p.subheading { color: var(--text-muted); margin-top: 0; }
 
+.step-back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: none;
+  border: none;
+  padding: 0;
+  margin-bottom: 14px;
+  color: var(--brand-primary);
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.step-back-btn:hover { text-decoration: underline; }
+
+body.rtl .step-back-arrow { display: inline-block; transform: scaleX(-1); }
+
 .btn {
   display: block;
   width: 100%;
@@ -329,6 +353,8 @@ input:focus, select:focus, textarea:focus {
   padding: 16px;
   margin-bottom: 10px;
   border: 2px solid var(--border);
+  border-inline-start-width: 6px;
+  border-inline-start-color: var(--event-accent, var(--brand-primary));
   border-radius: var(--radius);
   background: #fff;
   cursor: pointer;
@@ -337,9 +363,21 @@ input:focus, select:focus, textarea:focus {
   transition: border-color 0.15s ease, transform 0.1s ease, box-shadow 0.15s ease;
 }
 .event-option:hover {
-  border-color: var(--brand-primary);
   transform: translateY(-1px);
   box-shadow: 0 6px 16px rgba(15,27,66,0.1);
+}
+.event-option-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+}
+.event-option-logo {
+  height: 36px;
+  width: auto;
+  max-width: 70px;
+  object-fit: contain;
+  flex-shrink: 0;
 }
 .event-option-name {
   font-weight: 700;
@@ -480,16 +518,22 @@ canvas#sigPad {
 
 /* ---------- Certificate preview ---------- */
 .cert-box {
-  border: 3px solid var(--brand-primary);
+  border: 3px solid var(--event-accent, var(--brand-primary));
   border-radius: var(--radius);
   padding: 24px;
   text-align: center;
   background: #fff;
 }
+.cert-box .cert-logo {
+  max-height: 48px;
+  max-width: 160px;
+  object-fit: contain;
+  margin-bottom: 10px;
+}
 .cert-box .cert-title {
   font-size: 1.2rem;
   font-weight: 700;
-  color: var(--brand-primary);
+  color: var(--event-accent, var(--brand-primary));
   margin-bottom: 4px;
 }
 .cert-box .cert-name {

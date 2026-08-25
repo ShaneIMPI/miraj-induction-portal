@@ -72,13 +72,25 @@ async function goToEventStep() {
       const card = document.createElement("button");
       card.type = "button";
       card.className = "event-option";
+      card.style.setProperty("--event-accent", ev.brand_color || "#1A347E");
       const dateStr = ev.event_date ? new Date(ev.event_date).toLocaleDateString() : "";
+      const logoHtml = ev.logo_url
+        ? `<img src="${ev.logo_url}" alt="" class="event-option-logo">`
+        : "";
       card.innerHTML = `
-        <span class="event-option-name">${ev.name}</span>
-        <span class="event-option-meta">${[ev.location, dateStr].filter(Boolean).join(" \u00b7 ")}</span>
+        <div class="event-option-header">
+          ${logoHtml}
+          <div>
+            <span class="event-option-name">${ev.name}</span><br>
+            <span class="event-option-meta">${[ev.location, dateStr].filter(Boolean).join(" \u00b7 ")}</span>
+          </div>
+        </div>
       `;
       card.addEventListener("click", () => {
-        state.selectedEvent = { id: ev.id, name: ev.name, code: ev.code, status: ev.status };
+        state.selectedEvent = {
+          id: ev.id, name: ev.name, code: ev.code, status: ev.status,
+          brandColor: ev.brand_color || null, logoUrl: ev.logo_url || null
+        };
         state.siteOrEvent = ev.name; // keeps the CSV/admin table and certificate text working unchanged
         goToDetailsStep();
       });
@@ -94,10 +106,14 @@ function goToDetailsStep() {
   showStep("stepDetails");
 }
 
+document.getElementById("backToEventBtn").addEventListener("click", () => {
+  goToEventStep();
+});
+
 // ---------- Sponsor type radios ----------
 function renderSponsorTypeRadios() {
   const group = document.getElementById("sponsorTypeGroup");
-  const options = ["service_provider", "sponsor", "client_staff", "other"];
+  const options = ["service_provider", "contractor", "sponsor", "client_staff", "other"];
   group.innerHTML = "";
   options.forEach((opt, idx) => {
     const wrap = document.createElement("div");
@@ -486,6 +502,18 @@ async function renderCertificateResult(certificate, inductee, member) {
   const verifyUrl = buildVerifyUrl(certificate.qr_token);
   const issuedDateStr = new Date(certificate.issued_at).toLocaleDateString();
 
+  const certBox = document.getElementById("certBox");
+  const certLogo = document.getElementById("certLogo");
+  const accentColor = state.selectedEvent ? state.selectedEvent.brandColor : null;
+  certBox.style.setProperty("--event-accent", accentColor || "#1A347E");
+  if (state.selectedEvent && state.selectedEvent.logoUrl) {
+    certLogo.src = state.selectedEvent.logoUrl;
+    certLogo.classList.remove("hidden");
+  } else {
+    certLogo.classList.add("hidden");
+    certLogo.removeAttribute("src");
+  }
+
   document.getElementById("certName").textContent = member.fullName;
   document.getElementById("certNumber").textContent = certificate.certificate_number;
   document.getElementById("certDate").textContent = issuedDateStr;
@@ -499,7 +527,9 @@ async function renderCertificateResult(certificate, inductee, member) {
       issuedDateStr,
       statementText: t("certificate.statement"),
       titleText: t("certificate.title"),
-      brandName: BRAND.name
+      brandName: BRAND.name,
+      eventColor: state.selectedEvent ? state.selectedEvent.brandColor : null,
+      eventLogoUrl: state.selectedEvent ? state.selectedEvent.logoUrl : null
     });
 
     document.getElementById("certGenerating").classList.add("hidden");

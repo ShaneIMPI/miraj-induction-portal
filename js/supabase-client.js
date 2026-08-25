@@ -90,7 +90,7 @@ async function getAllEvents() {
   return data;
 }
 
-async function createEvent({ name, code, status, eventDate, location, country }) {
+async function createEvent({ name, code, status, eventDate, location, country, brandColor, logoUrl }) {
   const { data, error } = await supabaseClient
     .from("events")
     .insert({
@@ -99,12 +99,47 @@ async function createEvent({ name, code, status, eventDate, location, country })
       status: status || "draft",
       event_date: eventDate || null,
       location: location || null,
-      country: country || null
+      country: country || null,
+      brand_color: brandColor || null,
+      logo_url: logoUrl || null
     })
     .select()
     .single();
   if (error) throw error;
   return data;
+}
+
+async function updateEvent(eventId, { brandColor, logoUrl }) {
+  const payload = {};
+  if (brandColor !== undefined) payload.brand_color = brandColor;
+  if (logoUrl !== undefined) payload.logo_url = logoUrl;
+  const { data, error } = await supabaseClient
+    .from("events")
+    .update(payload)
+    .eq("id", eventId)
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+// Uploads a logo image file to the public "event-logos" Storage bucket
+// and returns its public URL. Requires an authenticated (admin) session —
+// see migration-event-branding.sql for the storage policies.
+async function uploadEventLogo(file, eventCode) {
+  const ext = file.name.split(".").pop().toLowerCase();
+  const safeCode = (eventCode || "event").toUpperCase().replace(/[^A-Z0-9]/g, "");
+  const path = `${safeCode}-${Date.now()}.${ext}`;
+
+  const { error: uploadError } = await supabaseClient.storage
+    .from("event-logos")
+    .upload(path, file, { upsert: true });
+  if (uploadError) throw uploadError;
+
+  const { data } = supabaseClient.storage
+    .from("event-logos")
+    .getPublicUrl(path);
+  return data.publicUrl;
 }
 
 async function updateEventStatus(eventId, status) {
@@ -125,7 +160,7 @@ async function verifyByToken(token) {
     .select(`
       id, certificate_number, qr_token, issued_at, valid, verified_count,
       inductees ( full_name, company_or_sponsor, site_or_event, induction_date ),
-      events ( name, code, status )
+      events ( name, code, status, brand_color, logo_url )
     `)
     .eq("qr_token", token)
     .maybeSingle();
@@ -139,7 +174,7 @@ async function verifyByCertificateNumber(certNumber) {
     .select(`
       id, certificate_number, qr_token, issued_at, valid, verified_count,
       inductees ( full_name, company_or_sponsor, site_or_event, induction_date ),
-      events ( name, code, status )
+      events ( name, code, status, brand_color, logo_url )
     `)
     .eq("certificate_number", certNumber.trim().toUpperCase())
     .maybeSingle();
@@ -198,4 +233,25 @@ async function searchInductees(searchTerm, limit) {
     .limit(limit || 200);
   if (error) throw error;
   return data;
+}
+
+// ---------- Admin: delete inductees ----------
+// Certificates are linked with "on delete cascade" (see schema.sql), so
+// deleting an inductee automatically removes their certificate too —
+// no separate certificate-delete call needed.
+async function deleteInductee(id) {
+  const { error } = await supabaseClient
+    .from("inductees")
+    .delete()
+    .eq("id", id);
+  if (error) throw error;
+}
+
+async function deleteInductees(ids) {
+  if (!ids || ids.length === 0) return;
+  const { error } = await supabaseClient
+    .from("inductees")
+    .delete()
+    .in("id", ids);
+  if (error) throw error;
 }

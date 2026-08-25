@@ -21,6 +21,7 @@
   "sponsorType": {
     "label": "You are attending as a",
     "service_provider": "Service Provider",
+    "contractor": "Contractor",
     "sponsor": "Sponsor",
     "client_staff": "Client Staff",
     "other": "Other"
@@ -109,7 +110,16 @@
     "clear": "Clear",
     "noResults": "No results",
     "noEvents": "No events yet — add one above.",
-    "eventCodeShort": "Code"
+    "eventCodeShort": "Code",
+    "actions": "Actions",
+    "delete": "Delete",
+    "deleteSelected": "Delete Selected",
+    "confirmDeleteOne": "Delete this inductee record? This cannot be undone.",
+    "confirmDeleteMany": "Delete the selected inductee records? This cannot be undone.",
+    "deleteFailed": "Delete failed — check your connection and try again.",
+    "eventColor": "Brand Colour",
+    "eventLogo": "Event Logo (optional)",
+    "uploadingLogo": "Uploading logo..."
   },
   "quiz": {
     "correct": "Correct — well done. Moving to the next topic.",
@@ -118,6 +128,7 @@
   "events": {
     "heading": "Select Your Event",
     "instructions": "Choose the event you're attending. If you don't see it listed, check with your site supervisor.",
-    "none": "There are no active events right now. Please check with your event organiser."
+    "none": "There are no active events right now. Please check with your event organiser.",
+    "changeEvent": "Change event"
   }
 }
