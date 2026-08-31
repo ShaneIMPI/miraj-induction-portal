@@ -245,7 +245,7 @@ body.rtl .step-back-arrow { display: inline-block; transform: scaleX(-1); }
 .btn:hover { transform: translateY(-2px); box-shadow: 0 10px 24px rgba(15,27,66,0.18); filter: brightness(1.05); }
 .btn:active { transform: translateY(0); box-shadow: 0 2px 6px rgba(15,27,66,0.1); }
 
-.btn-primary { background: var(--brand-primary); color: #fff; }
+.btn-primary { background: var(--brand-accent); color: #fff; }
 .btn-accent { background: var(--brand-accent); color: #fff; }
 .btn-outline { background: transparent; color: var(--brand-primary); border: 2px solid var(--brand-primary); }
 .btn-outline-light {
@@ -455,7 +455,7 @@ input:focus, select:focus, textarea:focus {
   font-family: inherit;
   transition: border-color 0.15s ease, transform 0.1s ease;
 }
-.quiz-answer:hover:not(:disabled) { border-color: var(--brand-primary); }
+.quiz-answer:hover:not(:disabled) { border-color: var(--brand-accent); }
 .quiz-answer:disabled { cursor: default; }
 
 /* The image is always shown in FULL — never cropped — regardless of screen

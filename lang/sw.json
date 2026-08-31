@@ -127,7 +127,14 @@
     "saveChanges": "Hifadhi Mabadiliko",
     "confirmDeleteEvent": "Futa tukio hili? Hatua hii haiwezi kutenduliwa.",
     "confirmDeleteEventWithCerts": "Tukio hili lina vyeti vilivyotolewa. Kufuta tukio hakutafuta vyeti hivyo au rekodi za wahusika — hazitaunganishwa tena na tukio hili. Endelea?",
-    "edit": "Hariri"
+    "edit": "Hariri",
+    "eventColorAccent": "Rangi ya Msisitizo (vitufe / wito wa kuchukua hatua)",
+    "eventColorAccentShort": "Msisitizo",
+    "buildUpDates": "Tarehe za Kuweka",
+    "eventDates": "Tarehe za Tukio",
+    "breakdownDates": "Tarehe za Kubomoa",
+    "start": "Mwanzo",
+    "end": "Mwisho"
   },
   "quiz": {
     "correct": "Sahihi — hongera. Tunaendelea na mada inayofuata.",

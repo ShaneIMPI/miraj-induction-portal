@@ -75,7 +75,7 @@ async function getActiveEvents() {
     .from("events")
     .select("*")
     .eq("status", "active")
-    .order("event_date", { ascending: true });
+    .order("event_start", { ascending: true });
   if (error) throw error;
   return data;
 }
@@ -90,17 +90,23 @@ async function getAllEvents() {
   return data;
 }
 
-async function createEvent({ name, code, status, eventDate, location, country, brandColor, logoUrl }) {
+async function createEvent({ name, code, status, buildUpStart, buildUpEnd, eventStart, eventEnd, breakdownStart, breakdownEnd, location, country, brandColor, accentColor, logoUrl }) {
   const { data, error } = await supabaseClient
     .from("events")
     .insert({
       name: name,
       code: code.toUpperCase().replace(/\s+/g, ""),
       status: status || "draft",
-      event_date: eventDate || null,
+      build_up_start: buildUpStart || null,
+      build_up_end: buildUpEnd || null,
+      event_start: eventStart || null,
+      event_end: eventEnd || null,
+      breakdown_start: breakdownStart || null,
+      breakdown_end: breakdownEnd || null,
       location: location || null,
       country: country || null,
       brand_color: brandColor || null,
+      brand_color_accent: accentColor || null,
       logo_url: logoUrl || null
     })
     .select()
@@ -109,14 +115,20 @@ async function createEvent({ name, code, status, eventDate, location, country, b
   return data;
 }
 
-async function updateEvent(eventId, { name, code, status, eventDate, location, brandColor, logoUrl }) {
+async function updateEvent(eventId, { name, code, status, buildUpStart, buildUpEnd, eventStart, eventEnd, breakdownStart, breakdownEnd, location, brandColor, accentColor, logoUrl }) {
   const payload = {};
   if (name !== undefined) payload.name = name;
   if (code !== undefined) payload.code = code.toUpperCase().replace(/\s+/g, "");
   if (status !== undefined) payload.status = status;
-  if (eventDate !== undefined) payload.event_date = eventDate || null;
+  if (buildUpStart !== undefined) payload.build_up_start = buildUpStart || null;
+  if (buildUpEnd !== undefined) payload.build_up_end = buildUpEnd || null;
+  if (eventStart !== undefined) payload.event_start = eventStart || null;
+  if (eventEnd !== undefined) payload.event_end = eventEnd || null;
+  if (breakdownStart !== undefined) payload.breakdown_start = breakdownStart || null;
+  if (breakdownEnd !== undefined) payload.breakdown_end = breakdownEnd || null;
   if (location !== undefined) payload.location = location || null;
   if (brandColor !== undefined) payload.brand_color = brandColor || null;
+  if (accentColor !== undefined) payload.brand_color_accent = accentColor || null;
   if (logoUrl !== undefined) payload.logo_url = logoUrl; // undefined = leave untouched, null = clear it
   const { data, error } = await supabaseClient
     .from("events")
@@ -183,7 +195,7 @@ async function verifyByToken(token) {
     .select(`
       id, certificate_number, qr_token, issued_at, valid, verified_count,
       inductees ( full_name, company_or_sponsor, site_or_event, induction_date ),
-      events ( name, code, status, brand_color, logo_url )
+      events ( name, code, status, brand_color, brand_color_accent, logo_url )
     `)
     .eq("qr_token", token)
     .maybeSingle();
@@ -197,7 +209,7 @@ async function verifyByCertificateNumber(certNumber) {
     .select(`
       id, certificate_number, qr_token, issued_at, valid, verified_count,
       inductees ( full_name, company_or_sponsor, site_or_event, induction_date ),
-      events ( name, code, status, brand_color, logo_url )
+      events ( name, code, status, brand_color, brand_color_accent, logo_url )
     `)
     .eq("certificate_number", certNumber.trim().toUpperCase())
     .maybeSingle();

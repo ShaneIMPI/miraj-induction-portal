@@ -127,7 +127,14 @@
     "saveChanges": "Enregistrer les modifications",
     "confirmDeleteEvent": "Supprimer cet événement ? Cette action est irréversible.",
     "confirmDeleteEventWithCerts": "Des certificats ont été émis pour cet événement. Supprimer l'événement ne supprimera pas ces certificats ni les fiches des participants — ils ne seront simplement plus liés à cet événement. Continuer ?",
-    "edit": "Modifier"
+    "edit": "Modifier",
+    "eventColorAccent": "Couleur d'accent (boutons / appels à l'action)",
+    "eventColorAccentShort": "Accent",
+    "buildUpDates": "Dates de montage",
+    "eventDates": "Dates de l'événement",
+    "breakdownDates": "Dates de démontage",
+    "start": "Début",
+    "end": "Fin"
   },
   "quiz": {
     "correct": "Correct — bravo. Passage au sujet suivant.",

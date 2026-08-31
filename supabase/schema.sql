@@ -78,10 +78,17 @@ create table if not exists events (
   name text not null,
   code text not null unique,     -- short code used in certificate numbers, e.g. 'DXB25'. Keep it short, uppercase, no spaces.
   status text not null default 'draft' check (status in ('draft','active','completed')),
-  event_date date,
+  event_date date,               -- deprecated, kept for backward compatibility; use event_start/event_end below
+  build_up_start date,
+  build_up_end date,
+  event_start date,
+  event_end date,
+  breakdown_start date,
+  breakdown_end date,
   location text,
   country text,
-  brand_color text,              -- hex colour e.g. '#1A347E' — used for event card accent + certificate border/title
+  brand_color text,              -- hex primary colour e.g. '#0F1214' — header, text, event card border, certificate border/title
+  brand_color_accent text,       -- hex accent colour e.g. '#FD843B' — buttons, CTAs, interactive hover states
   logo_url text,                 -- public URL of the event's logo in the 'event-logos' storage bucket
   cert_sequence integer not null default 0,
   created_at timestamptz not null default now()

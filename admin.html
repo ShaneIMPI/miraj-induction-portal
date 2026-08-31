@@ -22,6 +22,8 @@
   .status-completed { background: #E4E9F5; color: var(--brand-primary); }
   .status-select { font-size: 0.78rem; padding: 4px 8px; border-radius: 8px; border: 1px solid var(--border); }
   #eventFormCard input, #eventFormCard select { margin-bottom: 10px; }
+  .date-range-row { display: flex; gap: 10px; margin-bottom: 10px; }
+  .date-range-row input { flex: 1; margin-bottom: 0 !important; }
   .search-row { display: flex; gap: 10px; margin-bottom: 14px; }
   .search-row input { flex: 1; margin-bottom: 0; }
 </style>
@@ -69,8 +71,21 @@
         <input type="text" id="newEventName">
         <label data-i18n="admin.eventCode">Code (used in certificate numbers, e.g. DXB25)</label>
         <input type="text" id="newEventCode" style="text-transform:uppercase;">
-        <label data-i18n="admin.eventDate">Date</label>
-        <input type="date" id="newEventDate">
+        <label data-i18n="admin.buildUpDates">Build Up Dates</label>
+        <div class="date-range-row">
+          <input type="date" id="newBuildUpStart" data-i18n-placeholder="admin.start" placeholder="Start">
+          <input type="date" id="newBuildUpEnd" data-i18n-placeholder="admin.end" placeholder="End">
+        </div>
+        <label data-i18n="admin.eventDates">Event Dates</label>
+        <div class="date-range-row">
+          <input type="date" id="newEventStart" data-i18n-placeholder="admin.start" placeholder="Start">
+          <input type="date" id="newEventEnd" data-i18n-placeholder="admin.end" placeholder="End">
+        </div>
+        <label data-i18n="admin.breakdownDates">Breakdown Dates</label>
+        <div class="date-range-row">
+          <input type="date" id="newBreakdownStart" data-i18n-placeholder="admin.start" placeholder="Start">
+          <input type="date" id="newBreakdownEnd" data-i18n-placeholder="admin.end" placeholder="End">
+        </div>
         <label data-i18n="admin.eventLocation">Location</label>
         <input type="text" id="newEventLocation">
         <label data-i18n="admin.eventStatus">Status</label>
@@ -79,8 +94,10 @@
           <option value="active" data-i18n="admin.statusActive">Active</option>
           <option value="completed" data-i18n="admin.statusCompleted">Completed</option>
         </select>
-        <label data-i18n="admin.eventColor">Brand Colour</label>
+        <label data-i18n="admin.eventColor">Primary Colour</label>
         <input type="color" id="newEventColor" value="#1A347E" style="height:44px; padding:4px; cursor:pointer;">
+        <label data-i18n="admin.eventColorAccent">Accent Colour (buttons / CTAs)</label>
+        <input type="color" id="newEventColorAccent" value="#F15E2C" style="height:44px; padding:4px; cursor:pointer;">
         <label data-i18n="admin.eventLogo">Event Logo (optional)</label>
         <div id="currentLogoPreview" class="hidden" style="display:flex; align-items:center; gap:10px; margin-bottom:8px;">
           <img id="currentLogoImg" alt="" style="height:32px; width:auto; max-width:80px; object-fit:contain;">
@@ -105,10 +122,13 @@
             <thead>
               <tr>
                 <th data-i18n="admin.eventLogo">Logo</th>
-                <th data-i18n="admin.eventColor">Colour</th>
+                <th data-i18n="admin.eventColor">Primary</th>
+                <th data-i18n="admin.eventColorAccentShort">Accent</th>
                 <th data-i18n="admin.eventName">Event Name</th>
                 <th data-i18n="admin.eventCodeShort">Code</th>
-                <th data-i18n="admin.eventDate">Date</th>
+                <th data-i18n="admin.buildUpDates">Build Up</th>
+                <th data-i18n="admin.eventDates">Event Dates</th>
+                <th data-i18n="admin.breakdownDates">Breakdown</th>
                 <th data-i18n="admin.eventLocation">Location</th>
                 <th data-i18n="admin.eventStatus">Status</th>
                 <th data-i18n="admin.certsIssued">Certificates Issued</th>
@@ -340,31 +360,50 @@
     return `<span class="status-badge status-${status}" data-i18n="${key}">${status}</span>`;
   }
 
+  // Formats a start/end date pair compactly, e.g. "12 Jun – 15 Jun 2026".
+  // Falls back gracefully if only one side is set, or neither.
+  function formatDateRange(start, end) {
+    const fmt = (d) => new Date(d).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" });
+    if (start && end) {
+      if (start === end) return fmt(start);
+      return `${fmt(start)} \u2013 ${fmt(end)}`;
+    }
+    if (start) return fmt(start);
+    if (end) return fmt(end);
+    return "-";
+  }
+
   async function loadAndRenderEvents() {
     const body = document.getElementById("eventsBody");
-    body.innerHTML = `<tr><td colspan="9" style="text-align:center;"><div class="spinner"></div></td></tr>`;
+    body.innerHTML = `<tr><td colspan="12" style="text-align:center;"><div class="spinner"></div></td></tr>`;
     try {
       const events = await getAllEvents();
       allEventsCache = events;
       body.innerHTML = "";
       if (!events.length) {
-        body.innerHTML = `<tr><td colspan="9" style="text-align:center; color:var(--text-muted);" data-i18n="admin.noEvents">No events yet — add one above.</td></tr>`;
+        body.innerHTML = `<tr><td colspan="12" style="text-align:center; color:var(--text-muted);" data-i18n="admin.noEvents">No events yet — add one above.</td></tr>`;
         applyStrings();
         return;
       }
       events.forEach(ev => {
         const tr = document.createElement("tr");
-        const dateStr = ev.event_date ? new Date(ev.event_date).toLocaleDateString() : "-";
+        const buildUpStr = formatDateRange(ev.build_up_start, ev.build_up_end);
+        const eventDatesStr = formatDateRange(ev.event_start, ev.event_end);
+        const breakdownStr = formatDateRange(ev.breakdown_start, ev.breakdown_end);
         const logoCell = ev.logo_url
           ? `<img src="${ev.logo_url}" alt="${ev.name} logo" style="height:32px; width:auto; max-width:60px; object-fit:contain;">`
           : `<span style="color:var(--text-muted);">-</span>`;
         const swatch = `<span style="display:inline-block; width:20px; height:20px; border-radius:4px; background:${ev.brand_color || "#ccc"}; border:1px solid rgba(0,0,0,0.15);" title="${ev.brand_color || ""}"></span>`;
+        const accentSwatch = `<span style="display:inline-block; width:20px; height:20px; border-radius:4px; background:${ev.brand_color_accent || "#ccc"}; border:1px solid rgba(0,0,0,0.15);" title="${ev.brand_color_accent || ""}"></span>`;
         tr.innerHTML = `
           <td>${logoCell}</td>
           <td>${swatch}</td>
+          <td>${accentSwatch}</td>
           <td>${ev.name}</td>
           <td>${ev.code}</td>
-          <td>${dateStr}</td>
+          <td>${buildUpStr}</td>
+          <td>${eventDatesStr}</td>
+          <td>${breakdownStr}</td>
           <td>${ev.location || "-"}</td>
           <td>
             <select class="status-select" data-event-id="${ev.id}">
@@ -423,7 +462,7 @@
       });
     } catch (err) {
       console.error(err);
-      body.innerHTML = `<tr><td colspan="9" style="text-align:center; color:#C0392B;">Could not load events.</td></tr>`;
+      body.innerHTML = `<tr><td colspan="12" style="text-align:center; color:#C0392B;">Could not load events.</td></tr>`;
     }
   }
 
@@ -432,10 +471,16 @@
     editingEventId = ev.id;
     document.getElementById("newEventName").value = ev.name || "";
     document.getElementById("newEventCode").value = ev.code || "";
-    document.getElementById("newEventDate").value = ev.event_date || "";
+    document.getElementById("newBuildUpStart").value = ev.build_up_start || "";
+    document.getElementById("newBuildUpEnd").value = ev.build_up_end || "";
+    document.getElementById("newEventStart").value = ev.event_start || "";
+    document.getElementById("newEventEnd").value = ev.event_end || "";
+    document.getElementById("newBreakdownStart").value = ev.breakdown_start || "";
+    document.getElementById("newBreakdownEnd").value = ev.breakdown_end || "";
     document.getElementById("newEventLocation").value = ev.location || "";
     document.getElementById("newEventStatus").value = ev.status || "draft";
     document.getElementById("newEventColor").value = ev.brand_color || "#1A347E";
+    document.getElementById("newEventColorAccent").value = ev.brand_color_accent || "#F15E2C";
     document.getElementById("newEventLogo").value = "";
     document.getElementById("removeLogoCheckbox").checked = false;
 
@@ -458,10 +503,16 @@
     editingEventId = null;
     document.getElementById("newEventName").value = "";
     document.getElementById("newEventCode").value = "";
-    document.getElementById("newEventDate").value = "";
+    document.getElementById("newBuildUpStart").value = "";
+    document.getElementById("newBuildUpEnd").value = "";
+    document.getElementById("newEventStart").value = "";
+    document.getElementById("newEventEnd").value = "";
+    document.getElementById("newBreakdownStart").value = "";
+    document.getElementById("newBreakdownEnd").value = "";
     document.getElementById("newEventLocation").value = "";
     document.getElementById("newEventStatus").value = "draft";
     document.getElementById("newEventColor").value = "#1A347E";
+    document.getElementById("newEventColorAccent").value = "#F15E2C";
     document.getElementById("newEventLogo").value = "";
     document.getElementById("removeLogoCheckbox").checked = false;
     document.getElementById("currentLogoPreview").classList.add("hidden");
@@ -508,9 +559,15 @@
         name,
         code,
         status: document.getElementById("newEventStatus").value,
-        eventDate: document.getElementById("newEventDate").value || null,
+        buildUpStart: document.getElementById("newBuildUpStart").value || null,
+        buildUpEnd: document.getElementById("newBuildUpEnd").value || null,
+        eventStart: document.getElementById("newEventStart").value || null,
+        eventEnd: document.getElementById("newEventEnd").value || null,
+        breakdownStart: document.getElementById("newBreakdownStart").value || null,
+        breakdownEnd: document.getElementById("newBreakdownEnd").value || null,
         location: document.getElementById("newEventLocation").value.trim() || null,
-        brandColor: document.getElementById("newEventColor").value
+        brandColor: document.getElementById("newEventColor").value,
+        accentColor: document.getElementById("newEventColorAccent").value
       };
 
       if (editingEventId) {
@@ -520,10 +577,16 @@
         await createEvent({ ...eventFields, logoUrl: logoUrl || null });
         document.getElementById("newEventName").value = "";
         document.getElementById("newEventCode").value = "";
-        document.getElementById("newEventDate").value = "";
+        document.getElementById("newBuildUpStart").value = "";
+        document.getElementById("newBuildUpEnd").value = "";
+        document.getElementById("newEventStart").value = "";
+        document.getElementById("newEventEnd").value = "";
+        document.getElementById("newBreakdownStart").value = "";
+        document.getElementById("newBreakdownEnd").value = "";
         document.getElementById("newEventLocation").value = "";
         document.getElementById("newEventStatus").value = "draft";
         document.getElementById("newEventColor").value = "#1A347E";
+        document.getElementById("newEventColorAccent").value = "#F15E2C";
         document.getElementById("newEventLogo").value = "";
       }
       await loadAndRenderEvents();

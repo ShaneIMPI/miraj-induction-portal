@@ -63,19 +63,20 @@
     const inductee = record.inductees;
     const event = record.events || null;
     const eventName = (event && event.name) || inductee.site_or_event || "-";
-    const accentColor = (event && event.brand_color) || "#1A347E";
+    const primaryColor = (event && event.brand_color) || "#1A347E";
+    const accentColor = (event && event.brand_color_accent) || primaryColor;
     const logoHtml = (event && event.logo_url)
       ? `<img src="${event.logo_url}" alt="" style="max-height:44px; max-width:150px; object-fit:contain; display:block; margin:0 auto 12px;">`
       : "";
     wrap.innerHTML = `
       <div class="status-banner status-valid">${t("verify.valid")}</div>
-      <div class="card" style="border-top:4px solid ${accentColor};">
+      <div class="card" style="border-top:4px solid ${primaryColor};">
         ${logoHtml}
         <p class="cert-meta"><strong>${t("verify.name")}:</strong> ${inductee.full_name}</p>
         <p class="cert-meta"><strong>${t("verify.company")}:</strong> ${inductee.company_or_sponsor}</p>
         <p class="cert-meta"><strong>${t("verify.site")}:</strong> ${eventName}</p>
         <p class="cert-meta"><strong>${t("verify.issuedOn")}:</strong> ${new Date(record.issued_at).toLocaleDateString()}</p>
-        <p class="cert-meta"><strong>${t("certificate.certNumber")}:</strong> ${record.certificate_number}</p>
+        <p class="cert-meta"><strong>${t("certificate.certNumber")}:</strong> <span style="color:${accentColor}; font-weight:700;">${record.certificate_number}</span></p>
       </div>
     `;
     bumpVerifiedCount(record.id, record.verified_count).catch(() => {});

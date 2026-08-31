@@ -54,21 +54,24 @@ function renderStepIndicator(activeId) {
 }
 
 // ---------- Event branding ----------
-// Sets the master --brand-primary variable used everywhere in this
-// stylesheet (header, buttons, progress dots, step indicator, focus
-// states) so once an event is selected, the whole induction flow reflects
-// that event's own marketing brand colour rather than Miraj Media's
-// default navy. Resets to the default while browsing the event list
-// itself, since no specific event is "active" yet at that point.
-const DEFAULT_BRAND_COLOR = "#1A347E";
-function applyEventBranding(color) {
-  document.documentElement.style.setProperty("--brand-primary", color || DEFAULT_BRAND_COLOR);
+// Sets the master --brand-primary and --brand-accent variables used
+// everywhere in this stylesheet (header/text/progress dots use primary;
+// buttons/CTAs/hover states use accent) so once an event is selected,
+// the whole induction flow reflects that event's own two marketing
+// brand colours rather than Miraj Media's defaults. Resets to the
+// defaults while browsing the event list itself, since no specific
+// event is "active" yet at that point.
+const DEFAULT_BRAND_PRIMARY = "#1A347E";
+const DEFAULT_BRAND_ACCENT = "#F15E2C";
+function applyEventBranding(primary, accent) {
+  document.documentElement.style.setProperty("--brand-primary", primary || DEFAULT_BRAND_PRIMARY);
+  document.documentElement.style.setProperty("--brand-accent", accent || DEFAULT_BRAND_ACCENT);
 }
 
 // ---------- Step: Event selection ----------
 async function goToEventStep() {
   showStep("stepEvent");
-  applyEventBranding(null); // reset to Miraj default while choosing an event
+  applyEventBranding(null, null); // reset to Miraj defaults while choosing an event
   const list = document.getElementById("eventList");
   const noneMsg = document.getElementById("noActiveEvents");
   noneMsg.classList.add("hidden");
@@ -85,8 +88,15 @@ async function goToEventStep() {
       const card = document.createElement("button");
       card.type = "button";
       card.className = "event-option";
-      card.style.setProperty("--event-accent", ev.brand_color || DEFAULT_BRAND_COLOR);
-      const dateStr = ev.event_date ? new Date(ev.event_date).toLocaleDateString() : "";
+      card.style.setProperty("--event-accent", ev.brand_color || DEFAULT_BRAND_PRIMARY);
+      let dateStr = "";
+      if (ev.event_start && ev.event_end && ev.event_start !== ev.event_end) {
+        dateStr = `${new Date(ev.event_start).toLocaleDateString()} \u2013 ${new Date(ev.event_end).toLocaleDateString()}`;
+      } else if (ev.event_start) {
+        dateStr = new Date(ev.event_start).toLocaleDateString();
+      } else if (ev.event_end) {
+        dateStr = new Date(ev.event_end).toLocaleDateString();
+      }
       const logoHtml = ev.logo_url
         ? `<img src="${ev.logo_url}" alt="" class="event-option-logo">`
         : "";
@@ -102,10 +112,12 @@ async function goToEventStep() {
       card.addEventListener("click", () => {
         state.selectedEvent = {
           id: ev.id, name: ev.name, code: ev.code, status: ev.status,
-          brandColor: ev.brand_color || null, logoUrl: ev.logo_url || null
+          brandColor: ev.brand_color || null,
+          brandColorAccent: ev.brand_color_accent || null,
+          logoUrl: ev.logo_url || null
         };
         state.siteOrEvent = ev.name; // keeps the CSV/admin table and certificate text working unchanged
-        applyEventBranding(ev.brand_color);
+        applyEventBranding(ev.brand_color, ev.brand_color_accent);
         goToDetailsStep();
       });
       list.appendChild(card);
@@ -518,8 +530,8 @@ async function renderCertificateResult(certificate, inductee, member) {
 
   const certBox = document.getElementById("certBox");
   const certLogo = document.getElementById("certLogo");
-  const accentColor = state.selectedEvent ? state.selectedEvent.brandColor : null;
-  certBox.style.setProperty("--event-accent", accentColor || "#1A347E");
+  const primaryColor = state.selectedEvent ? state.selectedEvent.brandColor : null;
+  certBox.style.setProperty("--event-accent", primaryColor || "#1A347E");
   if (state.selectedEvent && state.selectedEvent.logoUrl) {
     certLogo.src = state.selectedEvent.logoUrl;
     certLogo.classList.remove("hidden");
@@ -542,7 +554,8 @@ async function renderCertificateResult(certificate, inductee, member) {
       statementText: t("certificate.statement"),
       titleText: t("certificate.title"),
       brandName: BRAND.name,
-      eventColor: state.selectedEvent ? state.selectedEvent.brandColor : null,
+      eventColor: primaryColor,
+      eventAccentColor: state.selectedEvent ? state.selectedEvent.brandColorAccent : null,
       eventLogoUrl: state.selectedEvent ? state.selectedEvent.logoUrl : null
     });
 

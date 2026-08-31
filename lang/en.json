@@ -126,7 +126,14 @@
     "saveChanges": "Save Changes",
     "confirmDeleteEvent": "Delete this event? This cannot be undone.",
     "confirmDeleteEventWithCerts": "This event has certificates issued against it. Deleting the event will not delete those certificates or inductee records — they'll just no longer be linked to this event. Continue?",
-    "edit": "Edit"
+    "edit": "Edit",
+    "eventColorAccent": "Accent Colour (buttons / CTAs)",
+    "eventColorAccentShort": "Accent",
+    "buildUpDates": "Build Up Dates",
+    "eventDates": "Event Dates",
+    "breakdownDates": "Breakdown Dates",
+    "start": "Start",
+    "end": "End"
   },
   "quiz": {
     "correct": "Correct — well done. Moving to the next topic.",

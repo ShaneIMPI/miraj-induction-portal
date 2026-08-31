@@ -94,7 +94,7 @@ function renderQrCode(containerEl, text) {
  * Builds the certificate PDF (A5 landscape) and triggers a download.
  * Returns a Promise so callers can await + retry on failure.
  */
-async function generateCertificatePdf({ fullName, certNumber, issuedDateStr, qrCanvas, statementText, titleText, brandName, eventColor, eventLogo }) {
+async function generateCertificatePdf({ fullName, certNumber, issuedDateStr, qrCanvas, statementText, titleText, brandName, eventColor, eventAccentColor, eventLogo }) {
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a5" });
 
@@ -148,8 +148,18 @@ async function generateCertificatePdf({ fullName, certNumber, issuedDateStr, qrC
 
   // Meta
   doc.setFontSize(9);
+  const [ar, ag, ab] = hexToRgb(eventAccentColor || eventColor);
+  const labelText = "Certificate No: ";
+  doc.setFont(undefined, "normal");
+  const labelWidth = doc.getTextWidth(labelText);
+  const numberWidth = doc.getTextWidth(certNumber);
+  const totalWidth = labelWidth + numberWidth;
+  const startX = pageWidth / 2 - totalWidth / 2;
   doc.setTextColor(90, 90, 90);
-  doc.text(`Certificate No: ${certNumber}`, pageWidth / 2, 63, { align: "center" });
+  doc.text(labelText, startX, 63, { align: "left" });
+  doc.setTextColor(ar, ag, ab);
+  doc.text(certNumber, startX + labelWidth, 63, { align: "left" });
+  doc.setTextColor(90, 90, 90);
   doc.text(`Issued: ${issuedDateStr}`, pageWidth / 2, 68, { align: "center" });
 
   // QR code image
@@ -166,11 +176,11 @@ async function generateCertificatePdf({ fullName, certNumber, issuedDateStr, qrC
  * Full pipeline: render QR -> load event logo -> wait -> build PDF -> save.
  * Throws on failure so the caller can show a retry UI.
  */
-async function generateAndDownloadCertificate({ containerEl, verifyUrl, fullName, certNumber, issuedDateStr, statementText, titleText, brandName, eventColor, eventLogoUrl }) {
+async function generateAndDownloadCertificate({ containerEl, verifyUrl, fullName, certNumber, issuedDateStr, statementText, titleText, brandName, eventColor, eventAccentColor, eventLogoUrl }) {
   const qrCanvas = await renderQrCode(containerEl, verifyUrl);
   const eventLogo = await loadImageAsDataUrl(eventLogoUrl);
   await generateCertificatePdf({
-    fullName, certNumber, issuedDateStr, qrCanvas, statementText, titleText, brandName, eventColor, eventLogo
+    fullName, certNumber, issuedDateStr, qrCanvas, statementText, titleText, brandName, eventColor, eventAccentColor, eventLogo
   });
   return qrCanvas;
 }
