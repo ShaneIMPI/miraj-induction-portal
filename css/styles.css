@@ -373,11 +373,15 @@ input:focus, select:focus, textarea:focus {
   width: 100%;
 }
 .event-option-logo {
-  height: 36px;
-  width: auto;
-  max-width: 70px;
+  width: 80px;
+  height: 80px;
   object-fit: contain;
   flex-shrink: 0;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 6px;
+  box-sizing: border-box;
 }
 .event-option-name {
   font-weight: 700;
