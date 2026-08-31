@@ -368,20 +368,19 @@ input:focus, select:focus, textarea:focus {
 }
 .event-option-header {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 12px;
+  gap: 14px;
   width: 100%;
+  text-align: center;
 }
 .event-option-logo {
-  width: 80px;
-  height: 80px;
+  max-width: 160px;
+  max-height: 140px;
+  width: auto;
+  height: auto;
   object-fit: contain;
   flex-shrink: 0;
-  background: #fff;
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 6px;
-  box-sizing: border-box;
 }
 .event-option-name {
   font-weight: 700;
