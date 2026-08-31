@@ -53,9 +53,22 @@ function renderStepIndicator(activeId) {
   });
 }
 
+// ---------- Event branding ----------
+// Sets the master --brand-primary variable used everywhere in this
+// stylesheet (header, buttons, progress dots, step indicator, focus
+// states) so once an event is selected, the whole induction flow reflects
+// that event's own marketing brand colour rather than Miraj Media's
+// default navy. Resets to the default while browsing the event list
+// itself, since no specific event is "active" yet at that point.
+const DEFAULT_BRAND_COLOR = "#1A347E";
+function applyEventBranding(color) {
+  document.documentElement.style.setProperty("--brand-primary", color || DEFAULT_BRAND_COLOR);
+}
+
 // ---------- Step: Event selection ----------
 async function goToEventStep() {
   showStep("stepEvent");
+  applyEventBranding(null); // reset to Miraj default while choosing an event
   const list = document.getElementById("eventList");
   const noneMsg = document.getElementById("noActiveEvents");
   noneMsg.classList.add("hidden");
@@ -72,7 +85,7 @@ async function goToEventStep() {
       const card = document.createElement("button");
       card.type = "button";
       card.className = "event-option";
-      card.style.setProperty("--event-accent", ev.brand_color || "#1A347E");
+      card.style.setProperty("--event-accent", ev.brand_color || DEFAULT_BRAND_COLOR);
       const dateStr = ev.event_date ? new Date(ev.event_date).toLocaleDateString() : "";
       const logoHtml = ev.logo_url
         ? `<img src="${ev.logo_url}" alt="" class="event-option-logo">`
@@ -92,6 +105,7 @@ async function goToEventStep() {
           brandColor: ev.brand_color || null, logoUrl: ev.logo_url || null
         };
         state.siteOrEvent = ev.name; // keeps the CSV/admin table and certificate text working unchanged
+        applyEventBranding(ev.brand_color);
         goToDetailsStep();
       });
       list.appendChild(card);
