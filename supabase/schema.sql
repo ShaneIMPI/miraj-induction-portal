@@ -62,7 +62,8 @@ create table if not exists induction_topics (
   sort_order integer not null default 0,
   title text not null,
   body text not null,
-  active boolean not null default true
+  active boolean not null default true,
+  unique (topic_key, language)
 );
 
 -- ============================================================
