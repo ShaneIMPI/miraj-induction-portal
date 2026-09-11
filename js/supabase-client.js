@@ -255,17 +255,26 @@ async function getTopicQuestions(language) {
 // Server-side search (not just filtering already-loaded rows) so it still
 // finds people even in datasets bigger than the default page limit.
 // Searches name, ID/passport number, and company/sponsor.
-async function searchInductees(searchTerm, limit) {
-  const term = `%${searchTerm.trim()}%`;
-  const { data, error } = await supabaseClient
+async function searchInductees(searchTerm, limit, eventId) {
+  const term = searchTerm && searchTerm.trim() ? `%${searchTerm.trim()}%` : null;
+  let query = supabaseClient
     .from("inductees")
     .select(`
       *,
-      events ( name, code )
+      events ( name, code, brand_color, brand_color_accent, logo_url ),
+      certificates ( certificate_number, qr_token, issued_at )
     `)
-    .or(`full_name.ilike.${term},id_or_passport_number.ilike.${term},company_or_sponsor.ilike.${term}`)
     .order("created_at", { ascending: false })
     .limit(limit || 200);
+
+  if (term) {
+    query = query.or(`full_name.ilike.${term},id_or_passport_number.ilike.${term},company_or_sponsor.ilike.${term}`);
+  }
+  if (eventId) {
+    query = query.eq("event_id", eventId);
+  }
+
+  const { data, error } = await query;
   if (error) throw error;
   return data;
 }
