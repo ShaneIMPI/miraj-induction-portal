@@ -612,6 +612,16 @@ function buildLangSwitcher() {
     await loadLanguage(sel.value);
     renderSponsorTypeRadios();
     initDetailsStep();
+
+    // Static UI text just got reloaded above, but the topic/quiz content
+    // comes from Supabase and was fetched once in whatever language was
+    // active at the time. If the topics step is currently on screen,
+    // re-fetch it now in the newly selected language — otherwise it
+    // silently keeps showing whatever language it was first loaded in.
+    const topicsStepEl = document.getElementById("stepTopics");
+    if (topicsStepEl && !topicsStepEl.classList.contains("hidden")) {
+      await goToTopicsForCurrentMember();
+    }
   });
 }
 
