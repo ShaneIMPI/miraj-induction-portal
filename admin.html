@@ -147,6 +147,9 @@
         <h3 data-i18n="admin.inductees">Inductees</h3>
         <div class="search-row">
           <input type="text" id="searchInput" data-i18n-placeholder="admin.searchPlaceholder" placeholder="Search by name, ID, or company...">
+          <select id="eventFilterSelect" style="flex:0 0 220px;">
+            <option value="">All events</option>
+          </select>
           <button class="btn btn-outline" id="searchBtn" style="width:auto; padding:10px 16px;" data-i18n="admin.search">Search</button>
           <button class="btn btn-outline" id="clearSearchBtn" style="width:auto; padding:10px 16px; display:none;" data-i18n="admin.clear">Clear</button>
         </div>
@@ -159,7 +162,7 @@
               <tr>
                 <th><input type="checkbox" id="selectAllCheckbox"></th>
                 <th>Name</th><th>ID/Passport</th><th>Company/Sponsor</th><th>Type</th>
-                <th data-i18n="admin.event">Event</th><th>Country</th><th>Language</th><th>Date</th>
+                <th data-i18n="admin.event">Event</th><th>Certificate #</th><th>Country</th><th>Language</th><th>Date</th>
                 <th data-i18n="admin.actions">Actions</th>
               </tr>
             </thead>
@@ -177,6 +180,8 @@
 <script src="js/config.js"></script>
 <script src="js/i18n.js"></script>
 <script src="js/supabase-client.js"></script>
+<script src="js/certificate.js"></script>
+<div id="adminQrContainer" style="position:absolute; left:-9999px; top:-9999px;"></div>
 <script>
   const SESSION_KEY = "mm_admin_session";
 
@@ -189,16 +194,21 @@
     document.getElementById("tabInductees").classList.toggle("active", tab === "inductees");
     document.getElementById("panelEvents").classList.toggle("hidden", tab !== "events");
     document.getElementById("panelInductees").classList.toggle("hidden", tab !== "inductees");
-    if (tab === "inductees") loadAndRenderInductees();
+    if (tab === "inductees") {
+      populateEventFilter();
+      loadAndRenderInductees();
+    }
   }
 
   // ---------- Inductees ----------
-  async function loadInductees() {
-    const { data, error } = await supabaseClient
+  async function loadInductees(eventId) {
+    let query = supabaseClient
       .from("inductees")
-      .select(`*, events ( name, code )`)
+      .select(`*, events ( name, code, brand_color, brand_color_accent, logo_url ), certificates ( certificate_number, qr_token, issued_at )`)
       .order("created_at", { ascending: false })
       .limit(500);
+    if (eventId) query = query.eq("event_id", eventId);
+    const { data, error } = await query;
     if (error) { console.error(error); return []; }
     return data;
   }
@@ -208,17 +218,24 @@
     return r.site_or_event || "-";
   }
 
+  // certificates comes back as an array from the join (Supabase doesn't
+  // know it's 1:1) — an inductee only ever has one, so just take the first.
+  function certOf(r) {
+    return (r.certificates && r.certificates[0]) || null;
+  }
+
   function renderInductees(rows) {
     const body = document.getElementById("inducteesBody");
     body.innerHTML = "";
     document.getElementById("selectAllCheckbox").checked = false;
     updateDeleteSelectedBtn();
     if (!rows.length) {
-      body.innerHTML = `<tr><td colspan="10" style="text-align:center; color:var(--text-muted);" data-i18n="admin.noResults">No results</td></tr>`;
+      body.innerHTML = `<tr><td colspan="11" style="text-align:center; color:var(--text-muted);" data-i18n="admin.noResults">No results</td></tr>`;
       applyStrings();
       return;
     }
     rows.forEach(r => {
+      const cert = certOf(r);
       const tr = document.createElement("tr");
       tr.innerHTML = `
         <td><input type="checkbox" class="rowCheckbox" data-id="${r.id}"></td>
@@ -227,15 +244,19 @@
         <td>${r.company_or_sponsor}</td>
         <td>${r.sponsor_type}</td>
         <td>${eventLabel(r)}</td>
+        <td>${cert ? cert.certificate_number : "-"}</td>
         <td>${r.country || "-"}</td>
         <td>${r.induction_language}</td>
         <td>${new Date(r.induction_date).toLocaleDateString()}</td>
-        <td><button type="button" class="deleteRowBtn" data-id="${r.id}" data-name="${r.full_name}" style="background:none; border:none; color:#C0392B; cursor:pointer; font-weight:600;" data-i18n="admin.delete">Delete</button></td>
+        <td style="white-space:nowrap;">
+          ${cert ? `<button type="button" class="downloadRowBtn" data-id="${r.id}" style="background:none; border:none; color:var(--brand-primary); cursor:pointer; font-weight:600; margin-inline-end:10px;">Download</button>` : ""}
+          <button type="button" class="deleteRowBtn" data-id="${r.id}" data-name="${r.full_name}" style="background:none; border:none; color:#C0392B; cursor:pointer; font-weight:600;" data-i18n="admin.delete">Delete</button>
+        </td>
       `;
       body.appendChild(tr);
     });
     applyStrings();
-    attachRowHandlers();
+    attachRowHandlers(rows);
   }
 
   function getSelectedIds() {
@@ -253,7 +274,7 @@
     }
   }
 
-  function attachRowHandlers() {
+  function attachRowHandlers(rows) {
     document.querySelectorAll(".rowCheckbox").forEach(cb => {
       cb.addEventListener("change", updateDeleteSelectedBtn);
     });
@@ -264,7 +285,7 @@
         if (!confirm(`${t("admin.confirmDeleteOne")}\n\n${name}`)) return;
         try {
           await deleteInductee(id);
-          if (document.getElementById("searchInput").value.trim()) {
+          if (document.getElementById("searchInput").value.trim() || document.getElementById("eventFilterSelect").value) {
             runSearch();
           } else {
             loadAndRenderInductees();
@@ -273,6 +294,39 @@
           console.error(err);
           alert(t("admin.deleteFailed"));
         }
+      });
+    });
+    document.querySelectorAll(".downloadRowBtn").forEach(btn => {
+      btn.addEventListener("click", async () => {
+        const id = btn.getAttribute("data-id");
+        const row = rows.find(r => r.id === id);
+        if (!row) return;
+        const cert = certOf(row);
+        if (!cert) return;
+        const originalText = btn.textContent;
+        btn.textContent = "...";
+        btn.disabled = true;
+        try {
+          const ev = row.events || null;
+          await generateAndDownloadCertificate({
+            containerEl: document.getElementById("adminQrContainer"),
+            verifyUrl: buildVerifyUrl(cert.qr_token),
+            fullName: row.full_name,
+            certNumber: cert.certificate_number,
+            issuedDateStr: new Date(cert.issued_at).toLocaleDateString(),
+            statementText: t("certificate.statement"),
+            titleText: t("certificate.title"),
+            brandName: BRAND.name,
+            eventColor: ev ? ev.brand_color : null,
+            eventAccentColor: ev ? ev.brand_color_accent : null,
+            eventLogoUrl: ev ? ev.logo_url : null
+          });
+        } catch (err) {
+          console.error("Certificate download failed:", err);
+          alert("Could not generate the certificate — check your connection and try again.");
+        }
+        btn.textContent = originalText;
+        btn.disabled = false;
       });
     });
   }
@@ -300,22 +354,44 @@
   });
 
   async function loadAndRenderInductees() {
-    const rows = await loadInductees();
+    const eventId = document.getElementById("eventFilterSelect").value || null;
+    const rows = await loadInductees(eventId);
     renderInductees(rows);
+  }
+
+  async function populateEventFilter() {
+    const sel = document.getElementById("eventFilterSelect");
+    try {
+      const events = allEventsCache.length ? allEventsCache : await getAllEvents();
+      const current = sel.value;
+      sel.innerHTML = `<option value="">All events</option>`;
+      events.forEach(ev => {
+        const opt = document.createElement("option");
+        opt.value = ev.id;
+        opt.textContent = ev.name;
+        sel.appendChild(opt);
+      });
+      sel.value = current;
+    } catch (err) {
+      console.error("Could not load events for filter:", err);
+    }
   }
 
   function toCsv(rows) {
     const headers = ["full_name","id_or_passport_number","company_or_sponsor","sponsor_type","site_or_event","country","induction_language","induction_date"];
-    const lines = [headers.join(",")];
+    const lines = [["certificate_number", ...headers].join(",")];
     rows.forEach(r => {
-      const line = headers.map(h => `"${String(r[h] ?? "").replace(/"/g, '""')}"`).join(",");
+      const cert = certOf(r);
+      const values = [cert ? cert.certificate_number : "", ...headers.map(h => r[h] ?? "")];
+      const line = values.map(v => `"${String(v).replace(/"/g, '""')}"`).join(",");
       lines.push(line);
     });
     return lines.join("\n");
   }
 
   document.getElementById("exportBtn").addEventListener("click", async () => {
-    const rows = await loadInductees();
+    const eventId = document.getElementById("eventFilterSelect").value || null;
+    const rows = await loadInductees(eventId);
     const csv = toCsv(rows);
     const blob = new Blob([csv], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
@@ -329,15 +405,16 @@
   // ---------- Search ----------
   async function runSearch() {
     const term = document.getElementById("searchInput").value.trim();
-    if (!term) { loadAndRenderInductees(); return; }
-    document.getElementById("inducteesBody").innerHTML = `<tr><td colspan="10" style="text-align:center;"><div class="spinner"></div></td></tr>`;
+    const eventId = document.getElementById("eventFilterSelect").value || null;
+    if (!term && !eventId) { loadAndRenderInductees(); return; }
+    document.getElementById("inducteesBody").innerHTML = `<tr><td colspan="11" style="text-align:center;"><div class="spinner"></div></td></tr>`;
     try {
-      const rows = await searchInductees(term, 200);
+      const rows = await searchInductees(term, 200, eventId);
       renderInductees(rows);
       document.getElementById("clearSearchBtn").style.display = "inline-block";
     } catch (err) {
       console.error(err);
-      document.getElementById("inducteesBody").innerHTML = `<tr><td colspan="10" style="text-align:center; color:#C0392B;">Search failed — check your connection.</td></tr>`;
+      document.getElementById("inducteesBody").innerHTML = `<tr><td colspan="11" style="text-align:center; color:#C0392B;">Search failed — check your connection.</td></tr>`;
     }
   }
 
@@ -345,8 +422,10 @@
   document.getElementById("searchInput").addEventListener("keydown", (e) => {
     if (e.key === "Enter") runSearch();
   });
+  document.getElementById("eventFilterSelect").addEventListener("change", runSearch);
   document.getElementById("clearSearchBtn").addEventListener("click", () => {
     document.getElementById("searchInput").value = "";
+    document.getElementById("eventFilterSelect").value = "";
     document.getElementById("clearSearchBtn").style.display = "none";
     loadAndRenderInductees();
   });
