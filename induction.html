@@ -278,7 +278,7 @@
     <button class="btn btn-primary" id="membersNextBtn" data-i18n="form.next">Next</button>
   </section>
 
-  <!-- STEP: Topics (shown once per person being inducted) -->
+  <!-- STEP: Mandatory safety video (shown once per session, before Topics). Continue stays disabled until the video's native "ended" event fires, and forward-seeking is blocked in induction-flow.js so it can't be skipped by dragging the progress bar. --><section id="stepVideo" class="card hidden"><h2 data-i18n="video.heading">Safety Induction Video</h2><p data-i18n="video.instruction">Please watch the full video before continuing. The Continue button unlocks once it ends.</p><video id="inductionVideo" controls playsinline style="width:100%; border-radius:10px; background:#000; margin:14px 0;" oncontextmenu="return false;"></video><button class="btn btn-primary" id="videoContinueBtn" data-i18n="video.continueBtn" disabled>Continue</button></section><!-- STEP: Topics (shown once per person being inducted) -->
   <section id="stepTopics" class="card hidden">
     <h2 data-i18n="topics.heading">Safety Induction Topics</h2>
     <p class="subheading" data-i18n="topics.instructions">Read each topic, then answer the question correctly to continue.</p>
