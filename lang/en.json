@@ -15,7 +15,7 @@
     "verifyLink": "Verify a certificate",
     "eyebrow": "Miraj Media · Event Safety & Security",
     "trust1": "20-topic safety & security induction",
-    "trust2": "Available in 4 languages",
+    "trust2": "Available in 2 languages",
     "trust3": "Verified digital certificate"
   },
   "sponsorType": {
@@ -144,5 +144,10 @@
     "instructions": "Choose the event you're attending. If you don't see it listed, check with your site supervisor.",
     "none": "There are no active events right now. Please check with your event organiser.",
     "changeEvent": "Change event"
+  },
+  "video": {
+    "heading": "Safety Induction Video",
+    "instruction": "Please watch the full video before continuing. The Continue button unlocks once it ends.",
+    "continueBtn": "Continue"
   }
 }
