@@ -29,7 +29,16 @@ const BRAND = {
 };
 
 // --- Languages available in the language switcher ---
-const SUPPORTED_LANGUAGES = ["en", "ar", "fr", "sw"];
+const SUPPORTED_LANGUAGES = ["en", "ar"];
+
+// --- Mandatory pre-induction safety video (per language) ---
+// Continue is locked on stepVideo until the video for the inductee's
+// selected language finishes playing. Swap these paths when new video
+// files are ready — no other code changes needed.
+const INDUCTION_VIDEO = {
+  en: "assets/induction-video-en.mp4",
+  ar: "assets/induction-video-ar.mp4"
+};
 const DEFAULT_LANGUAGE = "en";
 
 // --- Certificate number prefix ---
