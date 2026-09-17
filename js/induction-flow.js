@@ -25,10 +25,11 @@ const state = {
   ackByTopic: {},
   sigPad: null,
   sigHasStroke: false,
-  currentCertificate: null
+  currentCertificate: null,
+  videoWatched: false   // gates stepTopics; true for the rest of this session once the mandatory video has played through once
 };
 
-const steps = ["stepEvent", "stepDetails", "stepMembers", "stepTopics", "stepSignature", "stepCertificate"];
+const steps = ["stepEvent", "stepDetails", "stepMembers", "stepVideo", "stepTopics", "stepSignature", "stepCertificate"];
 
 function showStep(stepId) {
   steps.forEach(id => {
@@ -42,8 +43,8 @@ function showStep(stepId) {
 
 function renderStepIndicator(activeId) {
   const flow = state.type === "group"
-    ? ["stepEvent", "stepDetails", "stepMembers", "stepTopics", "stepSignature", "stepCertificate"]
-    : ["stepEvent", "stepDetails", "stepTopics", "stepSignature", "stepCertificate"];
+    ? ["stepEvent", "stepDetails", "stepMembers", "stepVideo", "stepTopics", "stepSignature", "stepCertificate"]
+    : ["stepEvent", "stepDetails", "stepVideo", "stepTopics", "stepSignature", "stepCertificate"];
   const wrap = document.getElementById("stepIndicator");
   wrap.innerHTML = "";
   flow.forEach(id => {
@@ -205,7 +206,7 @@ document.getElementById("detailsNextBtn").addEventListener("click", () => {
     if (state.members.length === 0) addMemberRow();
     showStep("stepMembers");
   } else {
-    goToTopicsForCurrentMember();
+    goToVideoGate();
   }
 });
 
@@ -262,8 +263,51 @@ document.getElementById("membersNextBtn").addEventListener("click", () => {
     return;
   }
   state.currentMemberIndex = 0;
-  goToTopicsForCurrentMember();
+  goToVideoGate();
 });
+
+// ---------- Step: Mandatory safety video ----------
+// Shown once per session (not once per group member — see goToVideoGate
+// call sites below) before stepTopics is reachable. Two things make this
+// an actual gate rather than a formality:
+//   1. videoContinueBtn stays disabled until the native "ended" event fires.
+//   2. forward-seeking is blocked: we track the furthest point actually
+//      played (maxPlayed) and snap back any attempt to drag the scrubber
+//      past it. Rewinding to re-watch is still allowed.
+function goToVideoGate() {
+  if (state.videoWatched) {
+    goToTopicsForCurrentMember();
+    return;
+  }
+  showStep("stepVideo");
+  const videoEl = document.getElementById("inductionVideo");
+  const continueBtn = document.getElementById("videoContinueBtn");
+  continueBtn.disabled = true;
+  let maxPlayed = 0;
+
+  const src = INDUCTION_VIDEO[state.language] || INDUCTION_VIDEO[DEFAULT_LANGUAGE];
+  videoEl.src = src;
+  videoEl.load();
+  videoEl.play().catch(() => { /* autoplay blocked — user can press play manually */ });
+
+  videoEl.ontimeupdate = () => {
+    if (videoEl.currentTime > maxPlayed) maxPlayed = videoEl.currentTime;
+  };
+  videoEl.onseeking = () => {
+    if (videoEl.currentTime > maxPlayed + 0.5) {
+      videoEl.currentTime = maxPlayed;
+    }
+  };
+  videoEl.onended = () => {
+    continueBtn.disabled = false;
+  };
+
+  continueBtn.onclick = () => {
+    if (continueBtn.disabled) return;
+    state.videoWatched = true;
+    goToTopicsForCurrentMember();
+  };
+}
 
 // ---------- Step: Topics (sequential, one topic at a time, quiz-gated) ----------
 // Each topic must be read AND its comprehension question answered correctly
