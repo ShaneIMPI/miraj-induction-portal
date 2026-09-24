@@ -290,7 +290,11 @@ function goToVideoGate() {
   videoEl.load();
   videoEl.play().catch(() => { /* autoplay blocked — user can press play manually */ });
 
-  videoEl.ontimeupdate = () => {
+  videoEl.onratechange = () => {
+            if (videoEl.playbackRate !== 1) videoEl.playbackRate = 1;
+  };
+  
+        videoEl.ontimeupdate = () => {
     if (videoEl.currentTime > maxPlayed) maxPlayed = videoEl.currentTime;
   };
   videoEl.onseeking = () => {
