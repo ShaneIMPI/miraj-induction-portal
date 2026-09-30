@@ -334,7 +334,7 @@ input:focus, select:focus, textarea:focus {
   margin-bottom: 12px;
 }
 .topic h3 { margin: 0 0 8px; font-size: 1rem; }
-.topic p { margin: 0 0 12px; color: var(--text-muted); font-size: 0.95rem; }
+.topic p { margin: 0 0 12px; color: var(--text-muted); font-size: 0.95rem; white-space: pre-line; }
 .topic .ack {
   display: flex;
   align-items: center;
@@ -597,3 +597,8 @@ footer.app-footer {
 
 /* RTL overrides */
 body.rtl .btn-outline { border-width: 2px; }
+
+
+/* Hindi (Devanagari): taller line spacing so matras above/below the line are not cramped */
+html[lang="hi"] body { line-height: 1.7; }
+html[lang="hi"] .btn, html[lang="hi"] label { line-height: 1.5; }

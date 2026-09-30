@@ -5,7 +5,8 @@
   },
   "nav": {
     "title": "Miraj Media Safety Induction",
-    "chooseLanguage": "Choose your language"
+    "chooseLanguage": "Choose your language",
+    "home": "Home"
   },
   "home": {
     "heading": "Complete Your Safety Induction",
@@ -14,8 +15,8 @@
     "groupBtn": "Group Induction",
     "verifyLink": "Verify a certificate",
     "eyebrow": "Miraj Media · Event Safety & Security",
-          "trust1": "23-topic safety & security induction",
-    "trust2": "Available in 2 languages",
+    "trust1": "23-topic safety & security induction",
+    "trust2": "Available in 3 languages",
     "trust3": "Verified digital certificate"
   },
   "sponsorType": {
@@ -41,7 +42,8 @@
     "next": "Next",
     "back": "Back",
     "submit": "Submit & Generate Certificate",
-    "required": "This field is required"
+    "required": "This field is required",
+    "duplicateId": "The same ID / passport number appears more than once in this group. Each person needs their own unique number."
   },
   "topics": {
     "heading": "Safety Induction Topics",
@@ -52,7 +54,8 @@
     "heading": "Signature",
     "instructions": "Please sign below to confirm you have completed this induction.",
     "clear": "Clear",
-    "required": "Please provide your signature before submitting"
+    "required": "Please provide your signature before submitting",
+    "groupInstructions": "The group representative signs below to confirm that every person listed has completed this induction."
   },
   "certificate": {
     "generating": "Generating your certificate…",
@@ -65,7 +68,10 @@
     "scanToVerify": "Scan to verify",
     "retry": "Certificate generation failed — Retry",
     "title": "Certificate of Safety Induction",
-    "statement": "This certifies that the person named below has completed the Miraj Media safety induction and is authorised to proceed to site, subject to compliance with all site rules."
+    "statement": "This certifies that the person named below has completed the Miraj Media safety induction and is authorised to proceed to site, subject to compliance with all site rules.",
+    "groupHeading": "Certificates issued for every member",
+    "groupInstructions": "Each person has their own certificate with its own number and QR code.",
+    "downloadAll": "Download all certificates (one PDF)"
   },
   "verify": {
     "heading": "Certificate Verification",
@@ -77,7 +83,18 @@
     "name": "Name",
     "company": "Company / Sponsor",
     "issuedOn": "Issued on",
-    "site": "Site / Event"
+    "site": "Site / Event",
+    "checkBtn": "Check",
+    "scanBtn": "Scan QR code with camera",
+    "scanPhotoBtn": "Scan from a photo",
+    "scanning": "Point the camera at the QR code on the certificate.",
+    "scanStop": "Stop camera",
+    "cameraError": "Could not access the camera. Allow camera access for this site, or use \"Scan from a photo\" instead.",
+    "cameraUnsupported": "This browser cannot open the camera. Use \"Scan from a photo\" or type the certificate number.",
+    "noQrInPhoto": "No QR code found in that photo. Try again with a clearer, closer photo.",
+    "notACertificateQr": "That QR code is not a certificate from this system.",
+    "idNumber": "ID / Passport (last 4 shown)",
+    "checkAgainstId": "Check the name and ID above against the person's ID document. If either differs from the certificate you were shown, the certificate has been altered — do not accept it."
   },
   "admin": {
     "login": "Admin Login",
@@ -133,7 +150,18 @@
     "eventDates": "Event Dates",
     "breakdownDates": "Breakdown Dates",
     "start": "Start",
-    "end": "End"
+    "end": "End",
+    "attendanceTab": "Attendance",
+    "marshalPin": "Marshal Check-In PIN",
+    "generatePin": "Generate",
+    "marshalPinHelp": "Marshals enter this PIN on the Marshal Scan screen for this event. Change it any time — marshals will need the new one next time they open the scan screen online.",
+    "attendanceHeading": "Daily Attendance",
+    "attendanceInstructions": "Arrivals recorded by marshals scanning certificates each day. Figures update once a marshal's phone has synced.",
+    "downloadSummaryCsv": "Download summary CSV (company × day)",
+    "downloadDetailCsv": "Download detail CSV (every scan)",
+    "noAttendance": "No arrivals recorded yet for this event.",
+    "companyOrSponsor": "Company / Sponsor",
+    "inducted": "Inducted"
   },
   "quiz": {
     "correct": "Correct — well done. Moving to the next topic.",
@@ -148,6 +176,17 @@
   "video": {
     "heading": "Safety Induction Video",
     "instruction": "Please watch the full video before continuing. The Continue button unlocks once it ends.",
-    "continueBtn": "Continue"
+    "continueBtn": "Continue",
+    "fallbackNotice": "The video in your language is not available yet, so the English video is being shown.",
+    "loadError": "The video could not be loaded. Check your connection and reload the page."
+  },
+  "photo": {
+    "heading": "Photo",
+    "instructions": "This photo is shown on your certificate so it can be checked against you in person.",
+    "capture": "Capture",
+    "retake": "Retake",
+    "next": "Next",
+    "cameraError": "Could not access the camera. Please allow camera access for this site and try again.",
+    "cameraUnsupported": "This browser can't open the camera. Please try a different browser or device."
   }
 }

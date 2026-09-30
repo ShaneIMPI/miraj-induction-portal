@@ -60,7 +60,7 @@
     SUPPORTED_LANGUAGES.forEach(code => {
       const opt = document.createElement("option");
       opt.value = code;
-      opt.textContent = code.toUpperCase();
+      opt.textContent = (typeof LANGUAGE_LABELS !== "undefined" && LANGUAGE_LABELS[code]) || code.toUpperCase();
       sel.appendChild(opt);
     });
     sel.value = getSavedOrDefaultLanguage();

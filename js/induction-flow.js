@@ -1,9 +1,10 @@
 // ============================================================
 // Induction flow state machine
 // Handles both "individual" and "group" inductions.
-// For group inductions, each member still completes their own
-// topics acknowledgement + signature + gets their own certificate,
-// which is what makes each certificate individually verifiable.
+// Group inductions: the group enters every member's details up front,
+// watches the video and completes the topics ONCE, the group
+// representative signs once, and then a separate certificate (own number,
+// own QR token) is issued for every listed member in one go.
 // ============================================================
 
 const params = new URLSearchParams(window.location.search);
@@ -26,10 +27,18 @@ const state = {
   sigPad: null,
   sigHasStroke: false,
   currentCertificate: null,
+  groupResults: [],     // group flow: [{member, inductee, certificate}] issued so far (lets Retry resume instead of duplicating)
+  groupPending: null,   // group flow: {index, inductee} — inductee saved but certificate not yet created
   videoWatched: false   // gates stepTopics; true for the rest of this session once the mandatory video has played through once
 };
 
-const steps = ["stepEvent", "stepDetails", "stepMembers", "stepVideo", "stepTopics", "stepSignature", "stepCertificate"];
+function esc(value) {
+  return String(value == null ? "" : value)
+    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+}
+
+const steps = ["stepEvent", "stepDetails", "stepMembers", "stepVideo", "stepTopics", "stepPhoto", "stepSignature", "stepCertificate"];
 
 function showStep(stepId) {
   steps.forEach(id => {
@@ -43,8 +52,8 @@ function showStep(stepId) {
 
 function renderStepIndicator(activeId) {
   const flow = state.type === "group"
-    ? ["stepEvent", "stepDetails", "stepMembers", "stepVideo", "stepTopics", "stepSignature", "stepCertificate"]
-    : ["stepEvent", "stepDetails", "stepVideo", "stepTopics", "stepSignature", "stepCertificate"];
+    ? ["stepEvent", "stepDetails", "stepMembers", "stepVideo", "stepTopics", "stepPhoto", "stepSignature", "stepCertificate"]
+    : ["stepEvent", "stepDetails", "stepVideo", "stepTopics", "stepPhoto", "stepSignature", "stepCertificate"];
   const wrap = document.getElementById("stepIndicator");
   wrap.innerHTML = "";
   flow.forEach(id => {
@@ -225,13 +234,13 @@ function renderMembersList() {
     row.style.marginBottom = "12px";
     row.innerHTML = `
       <label data-i18n="form.fullName"></label>
-      <input type="text" data-field="fullName" data-idx="${idx}" value="${m.fullName}">
+      <input type="text" data-field="fullName" data-idx="${idx}" value="${esc(m.fullName)}">
       <label data-i18n="form.idOrPassport"></label>
-      <input type="text" data-field="idOrPassport" data-idx="${idx}" value="${m.idOrPassport}">
+      <input type="text" data-field="idOrPassport" data-idx="${idx}" value="${esc(m.idOrPassport)}">
       <label data-i18n="form.nationality"></label>
-      <input type="text" data-field="nationality" data-idx="${idx}" value="${m.nationality}">
+      <input type="text" data-field="nationality" data-idx="${idx}" value="${esc(m.nationality)}">
       <label data-i18n="form.roleOrTrade"></label>
-      <input type="text" data-field="roleOrTrade" data-idx="${idx}" value="${m.roleOrTrade}">
+      <input type="text" data-field="roleOrTrade" data-idx="${idx}" value="${esc(m.roleOrTrade)}">
       ${state.members.length > 1 ? `<button class="btn btn-outline" data-remove="${idx}" data-i18n="form.removeMember" style="margin-top:10px;"></button>` : ""}
     `;
     list.appendChild(row);
@@ -262,6 +271,15 @@ document.getElementById("membersNextBtn").addEventListener("click", () => {
     alert(t("form.required"));
     return;
   }
+  const seenIds = new Set();
+  for (const m of state.members) {
+    const key = m.idOrPassport.trim().toLowerCase();
+    if (seenIds.has(key)) {
+      alert(t("form.duplicateId"));
+      return;
+    }
+    seenIds.add(key);
+  }
   state.currentMemberIndex = 0;
   goToVideoGate();
 });
@@ -286,6 +304,24 @@ function goToVideoGate() {
   let maxPlayed = 0;
 
   const src = INDUCTION_VIDEO[state.language] || INDUCTION_VIDEO[DEFAULT_LANGUAGE];
+  const fallbackSrc = INDUCTION_VIDEO[DEFAULT_LANGUAGE];
+  const noticeEl = document.getElementById("videoNotice");
+  const showNotice = (key) => { noticeEl.setAttribute("data-i18n", key); noticeEl.textContent = t(key); noticeEl.classList.remove("hidden"); };
+  noticeEl.classList.add("hidden");
+  let triedFallback = false;
+  // If the video for the chosen language is missing or fails to load, fall back to the
+  // English video (and say so) instead of leaving the person stuck on a dead screen.
+  videoEl.onerror = () => {
+    if (!triedFallback && src !== fallbackSrc) {
+      triedFallback = true;
+      showNotice("video.fallbackNotice");
+      videoEl.src = fallbackSrc;
+      videoEl.load();
+      videoEl.play().catch(() => {});
+    } else {
+      showNotice("video.loadError");
+    }
+  };
   videoEl.src = src;
   videoEl.load();
   videoEl.play().catch(() => { /* autoplay blocked — user can press play manually */ });
@@ -304,10 +340,22 @@ function goToVideoGate() {
   };
   videoEl.onended = () => {
     continueBtn.disabled = false;
+    if (state.videoGuard) { clearInterval(state.videoGuard); state.videoGuard = null; }
   };
+
+  // Second line of defence: some browsers (notably Safari) don't reliably fire
+  // "seeking" for every way of skipping (scrubber, keyboard, gestures). A short
+  // timer enforces the same rule regardless — never further than what has
+  // actually been played, always at normal speed.
+  if (state.videoGuard) clearInterval(state.videoGuard);
+  state.videoGuard = setInterval(() => {
+    if (videoEl.currentTime > maxPlayed + 1) videoEl.currentTime = maxPlayed;
+    if (videoEl.playbackRate !== 1) videoEl.playbackRate = 1;
+  }, 250);
 
   continueBtn.onclick = () => {
     if (continueBtn.disabled) return;
+    if (state.videoGuard) { clearInterval(state.videoGuard); state.videoGuard = null; }
     state.videoWatched = true;
     goToTopicsForCurrentMember();
   };
@@ -443,13 +491,90 @@ function markTopicAcknowledgedAndAdvance(topic) {
     document.getElementById("stepTopics").scrollIntoView({ behavior: "smooth", block: "start" });
   } else {
     document.getElementById("quizBlock").classList.add("hidden");
-    showStep("stepSignature");
-    initSignaturePad();
+    goToPhotoStep();
   }
 }
 
+// ---------- Step: Photo ----------
+// Individual: one photo, for the one person being inducted.
+// Group: looped, one photo per listed member in turn (state.photoMemberIndex),
+// since the whole point is a per-person visual check — a single group photo
+// or one representative's photo would defeat that.
+let photoCam = null;
+
+function goToPhotoStep() {
+  showStep("stepPhoto");
+  state.photoMemberIndex = 0;
+  startPhotoCaptureForCurrentMember();
+}
+
+function startPhotoCaptureForCurrentMember() {
+  const nameEl = document.getElementById("photoMemberName");
+  if (state.type === "group") {
+    const member = state.members[state.photoMemberIndex];
+    nameEl.textContent = member ? member.fullName : "";
+    nameEl.classList.remove("hidden");
+  } else {
+    nameEl.classList.add("hidden");
+  }
+  resetPhotoUi();
+  photoCam = createPhotoCapture({
+    videoEl: document.getElementById("photoVideo"),
+    canvasEl: document.getElementById("photoCanvas"),
+    onStatus: (key) => {
+      const errEl = document.getElementById("photoError");
+      if (key === "error.cameraError") { errEl.textContent = t("photo.cameraError"); errEl.classList.remove("hidden"); }
+      else if (key === "error.cameraUnsupported") { errEl.textContent = t("photo.cameraUnsupported"); errEl.classList.remove("hidden"); }
+    }
+  });
+  photoCam.start();
+}
+
+function resetPhotoUi() {
+  document.getElementById("photoVideo").classList.remove("hidden");
+  document.getElementById("photoPreview").classList.add("hidden");
+  document.getElementById("captureBtn").classList.remove("hidden");
+  document.getElementById("retakeBtn").classList.add("hidden");
+  document.getElementById("photoNextBtn").classList.add("hidden");
+  document.getElementById("photoError").classList.add("hidden");
+}
+
+document.getElementById("captureBtn").addEventListener("click", () => {
+  const dataUrl = photoCam && photoCam.capture();
+  if (!dataUrl) return;
+  const currentMember = state.members[state.type === "group" ? state.photoMemberIndex : 0];
+  if (currentMember) currentMember.photoData = dataUrl;
+  photoCam.stop();
+  document.getElementById("photoPreview").src = dataUrl;
+  document.getElementById("photoVideo").classList.add("hidden");
+  document.getElementById("photoPreview").classList.remove("hidden");
+  document.getElementById("captureBtn").classList.add("hidden");
+  document.getElementById("retakeBtn").classList.remove("hidden");
+  document.getElementById("photoNextBtn").classList.remove("hidden");
+});
+
+document.getElementById("retakeBtn").addEventListener("click", () => {
+  startPhotoCaptureForCurrentMember();
+});
+
+document.getElementById("photoNextBtn").addEventListener("click", () => {
+  if (photoCam) photoCam.stop();
+  if (state.type === "group" && state.photoMemberIndex < state.members.length - 1) {
+    state.photoMemberIndex += 1;
+    startPhotoCaptureForCurrentMember();
+  } else {
+    showStep("stepSignature");
+    initSignaturePad();
+  }
+});
+
 // ---------- Step: Signature ----------
 function initSignaturePad() {
+  const sigInstr = document.getElementById("signatureInstructions");
+  if (sigInstr) {
+    sigInstr.setAttribute("data-i18n", state.type === "group" ? "signature.groupInstructions" : "signature.instructions");
+    applyStrings();
+  }
   const canvas = document.getElementById("sigPad");
   const ctx = canvas.getContext("2d");
 
@@ -515,12 +640,17 @@ document.getElementById("submitBtn").addEventListener("click", async () => {
     document.getElementById("err-signature").classList.add("show");
     return;
   }
-  await submitCurrentMember();
+  if (state.type === "group") {
+    await submitGroup();
+  } else {
+    await submitCurrentMember();
+  }
 });
 
 // ---------- Submit + generate certificate ----------
 async function submitCurrentMember() {
   showStep("stepCertificate");
+  document.getElementById("groupCertBlock").classList.add("hidden");
   document.getElementById("certGenerating").classList.remove("hidden");
   document.getElementById("certResult").classList.add("hidden");
   document.getElementById("certError").classList.add("hidden");
@@ -557,7 +687,8 @@ async function submitCurrentMember() {
       country: state.country,
       induction_language: state.language,
       acknowledged_topics: Object.keys(state.ackByTopic).filter(k => state.ackByTopic[k]),
-      signature_data: signatureDataUrl
+      signature_data: signatureDataUrl,
+      photo_data: member.photoData || null
     });
 
     const certificate = await createCertificate(inductee.id, state.selectedEvent);
@@ -588,6 +719,9 @@ async function renderCertificateResult(certificate, inductee, member) {
     certLogo.removeAttribute("src");
   }
 
+  document.getElementById("certBox").classList.remove("hidden");
+  document.getElementById("downloadCertBtn").classList.remove("hidden");
+  document.getElementById("groupCertBlock").classList.add("hidden");
   document.getElementById("certName").textContent = member.fullName;
   document.getElementById("certNumber").textContent = certificate.certificate_number;
   document.getElementById("certDate").textContent = issuedDateStr;
@@ -604,22 +738,35 @@ async function renderCertificateResult(certificate, inductee, member) {
       brandName: BRAND.name,
       eventColor: primaryColor,
       eventAccentColor: state.selectedEvent ? state.selectedEvent.brandColorAccent : null,
-      eventLogoUrl: state.selectedEvent ? state.selectedEvent.logoUrl : null
+      eventLogoUrl: state.selectedEvent ? state.selectedEvent.logoUrl : null,
+      company: state.companyOrSponsor,
+      idOrPassport: member.idOrPassport,
+      photoDataUrl: member.photoData || null
     });
 
     document.getElementById("certGenerating").classList.add("hidden");
     document.getElementById("certResult").classList.remove("hidden");
+    document.getElementById("nextMemberBtn").classList.add("hidden");
+    document.getElementById("doneLink").classList.remove("hidden");
 
-    const isLastMember = state.currentMemberIndex >= state.members.length - 1;
-    const nextBtn = document.getElementById("nextMemberBtn");
-    const doneLink = document.getElementById("doneLink");
-    if (state.type === "group" && !isLastMember) {
-      nextBtn.classList.remove("hidden");
-      doneLink.classList.add("hidden");
-    } else {
-      nextBtn.classList.add("hidden");
-      doneLink.classList.remove("hidden");
-    }
+    // Re-download button (the first download happens automatically above)
+    document.getElementById("downloadCertBtn").onclick = async () => {
+      try {
+        await generateAndDownloadCertificate({
+          containerEl: document.getElementById("qrCanvas"),
+          verifyUrl, fullName: member.fullName, certNumber: certificate.certificate_number, issuedDateStr,
+          statementText: t("certificate.statement"), titleText: t("certificate.title"), brandName: BRAND.name,
+          eventColor: primaryColor,
+          eventAccentColor: state.selectedEvent ? state.selectedEvent.brandColorAccent : null,
+          eventLogoUrl: state.selectedEvent ? state.selectedEvent.logoUrl : null,
+          company: state.companyOrSponsor, idOrPassport: member.idOrPassport,
+          photoDataUrl: member.photoData || null
+        });
+      } catch (e) {
+        console.error(e);
+        document.getElementById("certError").classList.remove("hidden");
+      }
+    };
   } catch (err) {
     console.error("PDF/QR generation failed:", err);
     document.getElementById("certGenerating").classList.add("hidden");
@@ -630,7 +777,9 @@ async function renderCertificateResult(certificate, inductee, member) {
 document.getElementById("retryCertBtn").addEventListener("click", () => {
   document.getElementById("certError").classList.add("hidden");
   document.getElementById("certGenerating").classList.remove("hidden");
-  if (state.currentCertificate) {
+  if (state.type === "group") {
+    submitGroup();
+  } else if (state.currentCertificate) {
     const { certificate, inductee, member } = state.currentCertificate;
     renderCertificateResult(certificate, inductee, member);
   } else {
@@ -638,11 +787,166 @@ document.getElementById("retryCertBtn").addEventListener("click", () => {
   }
 });
 
-document.getElementById("nextMemberBtn").addEventListener("click", () => {
-  state.currentMemberIndex += 1;
-  state.currentCertificate = null;
-  goToTopicsForCurrentMember();
-});
+// ---------- Group: issue a certificate for EVERY listed member ----------
+// Runs once, after the group has watched the video, completed the topics and
+// the representative has signed. Members are processed one at a time (so the
+// per-event certificate numbers stay in order). If something fails part-way
+// (e.g. the connection drops), Retry continues from the first member who does
+// not have a certificate yet — it never creates duplicates.
+async function submitGroup() {
+  showStep("stepCertificate");
+  document.getElementById("certGenerating").classList.remove("hidden");
+  document.getElementById("certResult").classList.add("hidden");
+  document.getElementById("certError").classList.add("hidden");
+  const progressEl = document.getElementById("groupProgress");
+
+  try {
+    if (!state.groupId) {
+      const group = await createGroup({
+        groupName: state.groupName,
+        sponsorType: state.sponsorType,
+        sponsorCompany: state.companyOrSponsor,
+        siteOrEvent: state.siteOrEvent,
+        country: state.country,
+        language: state.language,
+        eventId: state.selectedEvent ? state.selectedEvent.id : null
+      });
+      state.groupId = group.id;
+    }
+
+    const signatureDataUrl = state.sigPad.toDataURL("image/png"); // group representative's signature
+
+    for (let i = state.groupResults.length; i < state.members.length; i++) {
+      const member = state.members[i];
+      if (progressEl) progressEl.textContent = `${i + 1} / ${state.members.length}`;
+
+      let inductee;
+      if (state.groupPending && state.groupPending.index === i) {
+        inductee = state.groupPending.inductee; // saved on a previous attempt, certificate still missing
+      } else {
+        inductee = await createInductee({
+          group_id: state.groupId,
+          full_name: member.fullName.trim(),
+          id_or_passport_number: member.idOrPassport.trim(),
+          nationality: member.nationality || null,
+          company_or_sponsor: state.companyOrSponsor,
+          sponsor_type: state.sponsorType,
+          role_or_trade: member.roleOrTrade || null,
+          contact_number: member.contactNumber || null,
+          site_or_event: state.siteOrEvent || null,
+          event_id: state.selectedEvent ? state.selectedEvent.id : null,
+          country: state.country,
+          induction_language: state.language,
+          acknowledged_topics: Object.keys(state.ackByTopic).filter(k => state.ackByTopic[k]),
+          signature_data: signatureDataUrl,
+          photo_data: member.photoData || null
+        });
+        state.groupPending = { index: i, inductee };
+      }
+
+      const certificate = await createCertificate(inductee.id, state.selectedEvent);
+      state.groupResults.push({ member, inductee, certificate });
+      state.groupPending = null;
+    }
+
+    await renderGroupCertificates();
+  } catch (err) {
+    console.error("Group certificate generation failed:", err);
+    document.getElementById("certGenerating").classList.add("hidden");
+    document.getElementById("certError").classList.remove("hidden");
+  }
+}
+
+function groupCertItems() {
+  return state.groupResults.map(r => ({
+    fullName: r.member.fullName.trim(),
+    certNumber: r.certificate.certificate_number,
+    issuedDateStr: new Date(r.certificate.issued_at).toLocaleDateString(),
+    verifyUrl: buildVerifyUrl(r.certificate.qr_token),
+    company: state.companyOrSponsor,
+    idOrPassport: r.member.idOrPassport.trim(),
+    photoDataUrl: r.member.photoData || null
+  }));
+}
+
+function groupPdfOptions() {
+  const ev = state.selectedEvent;
+  return {
+    containerEl: document.getElementById("groupQrContainer"),
+    statementText: t("certificate.statement"),
+    titleText: t("certificate.title"),
+    brandName: BRAND.name,
+    eventColor: ev ? ev.brandColor : null,
+    eventAccentColor: ev ? ev.brandColorAccent : null,
+    eventLogoUrl: ev ? ev.logoUrl : null
+  };
+}
+
+async function renderGroupCertificates() {
+  const items = groupCertItems();
+
+  // Screen layout: hide the single-certificate box, show the group list
+  document.getElementById("certBox").classList.add("hidden");
+  document.getElementById("downloadCertBtn").classList.add("hidden");
+  document.getElementById("nextMemberBtn").classList.add("hidden");
+  document.getElementById("groupCertBlock").classList.remove("hidden");
+
+  const list = document.getElementById("groupCertList");
+  list.innerHTML = "";
+  items.forEach(item => {
+    const row = document.createElement("div");
+    row.className = "group-cert-row";
+    const info = document.createElement("div");
+    const nameEl = document.createElement("strong");
+    nameEl.textContent = item.fullName;            // textContent: names are user-typed, never inject as HTML
+    const numEl = document.createElement("div");
+    numEl.className = "cert-meta";
+    numEl.textContent = item.certNumber;
+    info.appendChild(nameEl);
+    info.appendChild(numEl);
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "btn btn-outline";
+    btn.textContent = t("certificate.download");
+    btn.addEventListener("click", async () => {
+      btn.disabled = true;
+      try {
+        await generateGroupCertificatesPdf({ ...groupPdfOptions(), items: [item], filename: `${item.certNumber}.pdf` });
+      } catch (e) {
+        console.error(e);
+        alert(t("certificate.retry"));
+      }
+      btn.disabled = false;
+    });
+    row.appendChild(info);
+    row.appendChild(btn);
+    list.appendChild(row);
+  });
+
+  const allBtn = document.getElementById("downloadAllCertsBtn");
+  allBtn.onclick = async () => {
+    allBtn.disabled = true;
+    try {
+      await generateGroupCertificatesPdf({ ...groupPdfOptions(), items, filename: `${state.groupName || "group"}-certificates.pdf` });
+    } catch (e) {
+      console.error(e);
+      alert(t("certificate.retry"));
+    }
+    allBtn.disabled = false;
+  };
+
+  document.getElementById("certGenerating").classList.add("hidden");
+  document.getElementById("certResult").classList.remove("hidden");
+  document.getElementById("doneLink").classList.remove("hidden");
+
+  // Hand the whole group its certificates straight away (one PDF, one page per member).
+  // If the browser blocks/fails the automatic download, the buttons above still work.
+  try {
+    await generateGroupCertificatesPdf({ ...groupPdfOptions(), items, filename: `${state.groupName || "group"}-certificates.pdf` });
+  } catch (e) {
+    console.error("Automatic group PDF failed (buttons remain available):", e);
+  }
+}
 
 // ---------- Language switcher (shared) ----------
 function buildLangSwitcher() {
@@ -651,7 +955,7 @@ function buildLangSwitcher() {
   SUPPORTED_LANGUAGES.forEach(code => {
     const opt = document.createElement("option");
     opt.value = code;
-    opt.textContent = code.toUpperCase();
+    opt.textContent = (typeof LANGUAGE_LABELS !== "undefined" && LANGUAGE_LABELS[code]) || code.toUpperCase();
     sel.appendChild(opt);
   });
   sel.value = state.language;

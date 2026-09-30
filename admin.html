@@ -61,6 +61,7 @@
     <div class="admin-tabs">
       <button class="admin-tab active" id="tabEvents" data-i18n="admin.eventsTab">Events</button>
       <button class="admin-tab" id="tabInductees" data-i18n="admin.inducteesTab">Inductees</button>
+      <button class="admin-tab" id="tabAttendance" data-i18n="admin.attendanceTab">Attendance</button>
     </div>
 
     <!-- EVENTS PANEL -->
@@ -98,6 +99,12 @@
         <input type="color" id="newEventColor" value="#1A347E" style="height:44px; padding:4px; cursor:pointer;">
         <label data-i18n="admin.eventColorAccent">Accent Colour (buttons / CTAs)</label>
         <input type="color" id="newEventColorAccent" value="#F15E2C" style="height:44px; padding:4px; cursor:pointer;">
+        <label data-i18n="admin.marshalPin">Marshal Check-In PIN</label>
+        <div style="display:flex; gap:8px;">
+          <input type="text" id="newEventMarshalPin" inputmode="numeric" style="flex:1; letter-spacing:3px;" placeholder="e.g. 4821">
+          <button type="button" class="btn btn-outline" id="generatePinBtn" style="width:auto; padding:10px 16px;" data-i18n="admin.generatePin">Generate</button>
+        </div>
+        <p class="cert-meta" data-i18n="admin.marshalPinHelp">Marshals enter this PIN on the Marshal Scan screen for this event. Change it any time — marshals will need the new one next time they open the scan screen online.</p>
         <label data-i18n="admin.eventLogo">Event Logo (optional)</label>
         <div id="currentLogoPreview" class="hidden" style="display:flex; align-items:center; gap:10px; margin-bottom:8px;">
           <img id="currentLogoImg" alt="" style="height:32px; width:auto; max-width:80px; object-fit:contain;">
@@ -171,6 +178,24 @@
         </div>
       </div>
     </div>
+
+    <!-- ATTENDANCE PANEL -->
+    <div id="panelAttendance" class="hidden">
+      <div class="card">
+        <h3 data-i18n="admin.attendanceHeading">Daily Attendance</h3>
+        <p class="subheading" data-i18n="admin.attendanceInstructions">Arrivals recorded by marshals scanning certificates each day. Figures update once a marshal's phone has synced.</p>
+        <label data-i18n="admin.event">Event</label>
+        <select id="attendanceEventSelect"></select>
+        <div style="display:flex; gap:10px; margin-top:10px; flex-wrap:wrap;">
+          <button class="btn btn-outline" id="downloadAttendanceSummaryBtn" style="width:auto;" data-i18n="admin.downloadSummaryCsv">Download summary CSV (company &times; day)</button>
+          <button class="btn btn-outline" id="downloadAttendanceDetailBtn" style="width:auto;" data-i18n="admin.downloadDetailCsv">Download detail CSV (every scan)</button>
+        </div>
+        <div class="table-scroll" style="margin-top:16px;">
+          <table id="attendanceTable"><thead></thead><tbody></tbody></table>
+        </div>
+        <p id="attendanceEmpty" class="cert-meta hidden" data-i18n="admin.noAttendance">No arrivals recorded yet for this event.</p>
+      </div>
+    </div>
   </section>
 
 </main>
@@ -188,15 +213,21 @@
   // ---------- Tabs ----------
   document.getElementById("tabEvents").addEventListener("click", () => switchTab("events"));
   document.getElementById("tabInductees").addEventListener("click", () => switchTab("inductees"));
+  document.getElementById("tabAttendance").addEventListener("click", () => switchTab("attendance"));
 
   function switchTab(tab) {
     document.getElementById("tabEvents").classList.toggle("active", tab === "events");
     document.getElementById("tabInductees").classList.toggle("active", tab === "inductees");
+    document.getElementById("tabAttendance").classList.toggle("active", tab === "attendance");
     document.getElementById("panelEvents").classList.toggle("hidden", tab !== "events");
     document.getElementById("panelInductees").classList.toggle("hidden", tab !== "inductees");
+    document.getElementById("panelAttendance").classList.toggle("hidden", tab !== "attendance");
     if (tab === "inductees") {
       populateEventFilter();
       loadAndRenderInductees();
+    }
+    if (tab === "attendance") {
+      populateAttendanceEventSelect();
     }
   }
 
@@ -224,6 +255,14 @@
     return (r.certificates && r.certificates[0]) || null;
   }
 
+  // Names/companies are typed by the public into the induction form, so they
+  // must never be dropped into innerHTML unescaped (stored-injection risk).
+  function esc(value) {
+    return String(value == null ? "" : value)
+      .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+  }
+
   function renderInductees(rows) {
     const body = document.getElementById("inducteesBody");
     body.innerHTML = "";
@@ -239,18 +278,18 @@
       const tr = document.createElement("tr");
       tr.innerHTML = `
         <td><input type="checkbox" class="rowCheckbox" data-id="${r.id}"></td>
-        <td>${r.full_name}</td>
-        <td>${r.id_or_passport_number}</td>
-        <td>${r.company_or_sponsor}</td>
-        <td>${r.sponsor_type}</td>
-        <td>${eventLabel(r)}</td>
-        <td>${cert ? cert.certificate_number : "-"}</td>
-        <td>${r.country || "-"}</td>
-        <td>${r.induction_language}</td>
+        <td>${esc(r.full_name)}</td>
+        <td>${esc(r.id_or_passport_number)}</td>
+        <td>${esc(r.company_or_sponsor)}</td>
+        <td>${esc(r.sponsor_type)}</td>
+        <td>${esc(eventLabel(r))}</td>
+        <td>${esc(cert ? cert.certificate_number : "-")}</td>
+        <td>${esc(r.country || "-")}</td>
+        <td>${esc(r.induction_language)}</td>
         <td>${new Date(r.induction_date).toLocaleDateString()}</td>
         <td style="white-space:nowrap;">
           ${cert ? `<button type="button" class="downloadRowBtn" data-id="${r.id}" style="background:none; border:none; color:var(--brand-primary); cursor:pointer; font-weight:600; margin-inline-end:10px;">Download</button>` : ""}
-          <button type="button" class="deleteRowBtn" data-id="${r.id}" data-name="${r.full_name}" style="background:none; border:none; color:#C0392B; cursor:pointer; font-weight:600;" data-i18n="admin.delete">Delete</button>
+          <button type="button" class="deleteRowBtn" data-id="${r.id}" data-name="${esc(r.full_name)}" style="background:none; border:none; color:#C0392B; cursor:pointer; font-weight:600;" data-i18n="admin.delete">Delete</button>
         </td>
       `;
       body.appendChild(tr);
@@ -319,7 +358,9 @@
             brandName: BRAND.name,
             eventColor: ev ? ev.brand_color : null,
             eventAccentColor: ev ? ev.brand_color_accent : null,
-            eventLogoUrl: ev ? ev.logo_url : null
+            eventLogoUrl: ev ? ev.logo_url : null,
+            company: row.company_or_sponsor,
+            idOrPassport: row.id_or_passport_number
           });
         } catch (err) {
           console.error("Certificate download failed:", err);
@@ -358,6 +399,92 @@
     const rows = await loadInductees(eventId);
     renderInductees(rows);
   }
+
+  // ---------- Attendance ----------
+  function csvCell(v) {
+    const s = String(v == null ? "" : v);
+    return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+  }
+  function downloadCsv(filename, rows) {
+    const csv = rows.map(r => r.map(csvCell).join(",")).join("\r\n");
+    const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = filename;
+    document.body.appendChild(a); a.click(); a.remove();
+  }
+
+  async function populateAttendanceEventSelect() {
+    const sel = document.getElementById("attendanceEventSelect");
+    const events = allEventsCache.length ? allEventsCache : await getAllEvents();
+    const current = sel.value;
+    sel.innerHTML = "";
+    events.forEach(ev => {
+      const opt = document.createElement("option");
+      opt.value = ev.id; opt.textContent = ev.name;
+      sel.appendChild(opt);
+    });
+    if (current && events.some(e => e.id === current)) sel.value = current;
+    if (sel.value) await renderAttendanceReport(sel.value);
+  }
+  document.getElementById("attendanceEventSelect").addEventListener("change", (e) => renderAttendanceReport(e.target.value));
+
+  let lastAttendanceReport = null;
+
+  async function renderAttendanceReport(eventId) {
+    const table = document.getElementById("attendanceTable");
+    const emptyEl = document.getElementById("attendanceEmpty");
+    if (!eventId) { table.querySelector("thead").innerHTML = ""; table.querySelector("tbody").innerHTML = ""; return; }
+    let report;
+    try {
+      report = await getAttendanceReport(eventId);
+    } catch (err) {
+      console.error(err);
+      return;
+    }
+    lastAttendanceReport = { eventId, ...report };
+
+    const days = [...new Set(report.byDay.map(r => r.scan_date))].sort();
+    const companies = [...new Set(report.inducted.map(r => r.company_or_sponsor))].sort();
+    emptyEl.classList.toggle("hidden", days.length > 0);
+
+    const thead = table.querySelector("thead");
+    const tbody = table.querySelector("tbody");
+    thead.innerHTML = `<tr><th>${esc(t("admin.companyOrSponsor") || "Company")}</th><th>${esc(t("admin.inducted") || "Inducted")}</th>` +
+      days.map(d => `<th>${esc(d)}</th>`).join("") + `</tr>`;
+
+    const byKey = {};
+    report.byDay.forEach(r => { byKey[r.company_or_sponsor + "|" + r.scan_date] = r.arrived_count; });
+    const totalByCompany = {};
+    report.inducted.forEach(r => { totalByCompany[r.company_or_sponsor] = r.inducted_count; });
+
+    tbody.innerHTML = companies.map(c => {
+      const cells = days.map(d => `<td>${byKey[c + "|" + d] != null ? byKey[c + "|" + d] : "—"}</td>`).join("");
+      return `<tr><td>${esc(c)}</td><td>${totalByCompany[c] || 0}</td>${cells}</tr>`;
+    }).join("");
+  }
+
+  document.getElementById("downloadAttendanceSummaryBtn").addEventListener("click", () => {
+    if (!lastAttendanceReport) return;
+    const { inducted, byDay } = lastAttendanceReport;
+    const days = [...new Set(byDay.map(r => r.scan_date))].sort();
+    const companies = [...new Set(inducted.map(r => r.company_or_sponsor))].sort();
+    const byKey = {}; byDay.forEach(r => { byKey[r.company_or_sponsor + "|" + r.scan_date] = r.arrived_count; });
+    const totalByCompany = {}; inducted.forEach(r => { totalByCompany[r.company_or_sponsor] = r.inducted_count; });
+    const rows = [["Company", "Inducted", ...days]];
+    companies.forEach(c => rows.push([c, totalByCompany[c] || 0, ...days.map(d => byKey[c + "|" + d] || 0)]));
+    downloadCsv("attendance-summary.csv", rows);
+  });
+
+  document.getElementById("downloadAttendanceDetailBtn").addEventListener("click", () => {
+    if (!lastAttendanceReport) return;
+    const rows = [["Date", "Name", "Company", "ID / Passport", "Marshal"]];
+    lastAttendanceReport.detail.forEach(r => {
+      const ind = r.inductees || {};
+      rows.push([r.scan_date, ind.full_name || "", ind.company_or_sponsor || "", ind.id_or_passport_number || "", r.marshal_name || ""]);
+    });
+    downloadCsv("attendance-detail.csv", rows);
+  });
 
   async function populateEventFilter() {
     const sel = document.getElementById("eventFilterSelect");
@@ -560,6 +687,7 @@
     document.getElementById("newEventStatus").value = ev.status || "draft";
     document.getElementById("newEventColor").value = ev.brand_color || "#1A347E";
     document.getElementById("newEventColorAccent").value = ev.brand_color_accent || "#F15E2C";
+    document.getElementById("newEventMarshalPin").value = ev.marshal_pin || "";
     document.getElementById("newEventLogo").value = "";
     document.getElementById("removeLogoCheckbox").checked = false;
 
@@ -592,6 +720,7 @@
     document.getElementById("newEventStatus").value = "draft";
     document.getElementById("newEventColor").value = "#1A347E";
     document.getElementById("newEventColorAccent").value = "#F15E2C";
+    document.getElementById("newEventMarshalPin").value = "";
     document.getElementById("newEventLogo").value = "";
     document.getElementById("removeLogoCheckbox").checked = false;
     document.getElementById("currentLogoPreview").classList.add("hidden");
@@ -604,6 +733,9 @@
   }
 
   document.getElementById("cancelEditBtn").addEventListener("click", cancelEdit);
+  document.getElementById("generatePinBtn").addEventListener("click", () => {
+    document.getElementById("newEventMarshalPin").value = String(Math.floor(1000 + Math.random() * 9000));
+  });
 
   document.getElementById("addEventBtn").addEventListener("click", async () => {
     const name = document.getElementById("newEventName").value.trim();
@@ -646,7 +778,8 @@
         breakdownEnd: document.getElementById("newBreakdownEnd").value || null,
         location: document.getElementById("newEventLocation").value.trim() || null,
         brandColor: document.getElementById("newEventColor").value,
-        accentColor: document.getElementById("newEventColorAccent").value
+        accentColor: document.getElementById("newEventColorAccent").value,
+        marshalPin: document.getElementById("newEventMarshalPin").value.trim() || null
       };
 
       if (editingEventId) {
@@ -666,6 +799,7 @@
         document.getElementById("newEventStatus").value = "draft";
         document.getElementById("newEventColor").value = "#1A347E";
         document.getElementById("newEventColorAccent").value = "#F15E2C";
+        document.getElementById("newEventMarshalPin").value = "";
         document.getElementById("newEventLogo").value = "";
       }
       await loadAndRenderEvents();

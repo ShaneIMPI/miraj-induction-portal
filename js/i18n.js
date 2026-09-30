@@ -5,7 +5,7 @@ let currentLang = null;
 let currentStrings = null;
 
 async function loadLanguage(langCode) {
-  const res = await fetch(`lang/${langCode}.json?v=2`);
+  const res = await fetch(`lang/${langCode}.json?v=3`);
   if (!res.ok) throw new Error(`Could not load language file for ${langCode}`);
   const strings = await res.json();
   currentLang = langCode;

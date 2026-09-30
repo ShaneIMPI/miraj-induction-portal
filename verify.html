@@ -5,6 +5,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Verify Certificate — Miraj Media</title>
 <link rel="stylesheet" href="css/styles.css">
+<style>
+  .scan-actions { display:flex; flex-wrap:wrap; gap:10px; margin-top:14px; }
+  .scan-actions .btn { width:auto; flex:1 1 200px; text-align:center; cursor:pointer; }
+  .scan-panel { margin-top:14px; text-align:center; }
+  .scan-panel video { width:100%; max-width:420px; border-radius:10px; background:#000; }
+  .verify-warning { margin-top:12px; padding:10px 12px; border-radius:8px; background:#FFF6E5; border:1px solid #F0C36D; color:#6B4B00; font-size:0.9rem; }
+</style>
 </head>
 <body>
 
@@ -24,7 +31,20 @@
     <p class="subheading" data-i18n="verify.instructions">Enter a certificate number or scan the QR code on the certificate.</p>
     <label data-i18n="certificate.certNumber">Certificate Number</label>
     <input type="text" id="certInput" placeholder="MM-DXB25-0001">
-    <button class="btn btn-primary" id="checkBtn" style="margin-top:14px;">Check</button>
+    <button class="btn btn-primary" id="checkBtn" style="margin-top:14px;" data-i18n="verify.checkBtn">Check</button>
+
+    <div class="scan-actions">
+      <button type="button" class="btn btn-accent" id="scanBtn" data-i18n="verify.scanBtn">Scan QR code with camera</button>
+      <label class="btn btn-outline scan-photo-label" for="scanPhotoInput" data-i18n="verify.scanPhotoBtn">Scan from a photo</label>
+      <input type="file" id="scanPhotoInput" accept="image/*" capture="environment" class="hidden">
+    </div>
+
+    <div id="scanPanel" class="scan-panel hidden">
+      <video id="scanVideo" playsinline muted></video>
+      <p id="scanStatus" class="cert-meta" data-i18n="verify.scanning">Point the camera at the QR code on the certificate.</p>
+      <button type="button" class="btn btn-outline" id="scanStopBtn" data-i18n="verify.scanStop">Stop camera</button>
+    </div>
+    <canvas id="scanCanvas" class="hidden"></canvas>
   </div>
 
   <div id="resultWrap"></div>
@@ -36,14 +56,23 @@
 <script src="js/config.js"></script>
 <script src="js/i18n.js"></script>
 <script src="js/supabase-client.js"></script>
+<script src="js/certificate.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+<script src="js/qr-scan.js"></script>
 <script>
+  function esc(value) {
+    return String(value == null ? "" : value)
+      .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+  }
+
   function buildLangSwitcher() {
     const sel = document.getElementById("langSelect");
     sel.innerHTML = "";
     SUPPORTED_LANGUAGES.forEach(code => {
       const opt = document.createElement("option");
       opt.value = code;
-      opt.textContent = code.toUpperCase();
+      opt.textContent = (typeof LANGUAGE_LABELS !== "undefined" && LANGUAGE_LABELS[code]) || code.toUpperCase();
       sel.appendChild(opt);
     });
     sel.value = getSavedOrDefaultLanguage();
@@ -63,20 +92,28 @@
     const inductee = record.inductees;
     const event = record.events || null;
     const eventName = (event && event.name) || inductee.site_or_event || "-";
-    const primaryColor = (event && event.brand_color) || "#1A347E";
-    const accentColor = (event && event.brand_color_accent) || primaryColor;
+    const safeColor = (c) => /^#[0-9a-f]{3,8}$/i.test(String(c || "")) ? c : null;
+    const primaryColor = safeColor(event && event.brand_color) || "#1A347E";
+    const accentColor = safeColor(event && event.brand_color_accent) || primaryColor;
     const logoHtml = (event && event.logo_url)
-      ? `<img src="${event.logo_url}" alt="" style="max-height:44px; max-width:150px; object-fit:contain; display:block; margin:0 auto 12px;">`
+      ? `<img src="${esc(event.logo_url)}" alt="" style="max-height:44px; max-width:150px; object-fit:contain; display:block; margin:0 auto 12px;">`
+      : "";
+    const idMasked = maskIdNumber(inductee.id_or_passport_number);
+    const photoHtml = inductee.photo_data
+      ? `<img src="${esc(inductee.photo_data)}" alt="" style="display:block; width:120px; height:120px; object-fit:cover; border-radius:10px; margin:0 auto 12px; border:2px solid ${primaryColor};">`
       : "";
     wrap.innerHTML = `
-      <div class="status-banner status-valid">${t("verify.valid")}</div>
+      <div class="status-banner status-valid">${esc(t("verify.valid"))}</div>
       <div class="card" style="border-top:4px solid ${primaryColor};">
         ${logoHtml}
-        <p class="cert-meta"><strong>${t("verify.name")}:</strong> ${inductee.full_name}</p>
-        <p class="cert-meta"><strong>${t("verify.company")}:</strong> ${inductee.company_or_sponsor}</p>
-        <p class="cert-meta"><strong>${t("verify.site")}:</strong> ${eventName}</p>
-        <p class="cert-meta"><strong>${t("verify.issuedOn")}:</strong> ${new Date(record.issued_at).toLocaleDateString()}</p>
-        <p class="cert-meta"><strong>${t("certificate.certNumber")}:</strong> <span style="color:${accentColor}; font-weight:700;">${record.certificate_number}</span></p>
+        ${photoHtml}
+        <p class="cert-meta"><strong>${esc(t("verify.name"))}:</strong> ${esc(inductee.full_name)}</p>
+        <p class="cert-meta"><strong>${esc(t("verify.idNumber"))}:</strong> ${esc(idMasked || "-")}</p>
+        <p class="cert-meta"><strong>${esc(t("verify.company"))}:</strong> ${esc(inductee.company_or_sponsor)}</p>
+        <p class="cert-meta"><strong>${esc(t("verify.site"))}:</strong> ${esc(eventName)}</p>
+        <p class="cert-meta"><strong>${esc(t("verify.issuedOn"))}:</strong> ${esc(new Date(record.issued_at).toLocaleDateString())}</p>
+        <p class="cert-meta"><strong>${esc(t("certificate.certNumber"))}:</strong> <span style="color:${accentColor}; font-weight:700;">${esc(record.certificate_number)}</span></p>
+        <div class="verify-warning">${esc(t("verify.checkAgainstId"))}</div>
       </div>
     `;
     bumpVerifiedCount(record.id, record.verified_count).catch(() => {});
@@ -105,6 +142,75 @@
       wrap.innerHTML = `<div class="status-banner status-invalid">${t("verify.invalid")}</div>`;
     }
   }
+
+  // ---------- QR scanner (camera + photo fallback) ----------
+  const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  const CERT_NO_RE = /^[A-Z0-9]+(-[A-Z0-9]+)+$/i;
+
+  // Only ever extracts a token / certificate number from what was scanned —
+  // it never navigates to a scanned link, so a fake QR can't send the
+  // verifier to another site.
+  function extractFromScan(text) {
+    text = String(text || "").trim();
+    try {
+      const u = new URL(text);
+      const tok = u.searchParams.get("token");
+      if (tok && UUID_RE.test(tok)) return { token: tok };
+    } catch (e) { /* not a URL */ }
+    if (UUID_RE.test(text)) return { token: text };
+    if (CERT_NO_RE.test(text)) return { number: text };
+    return null;
+  }
+
+  function setScanStatus(key) {
+    const el = document.getElementById("scanStatus");
+    if (!key) { el.textContent = ""; return; }
+    el.setAttribute("data-i18n", key);
+    el.textContent = t(key);
+  }
+
+  const scanner = createQrScanner({
+    videoEl: document.getElementById("scanVideo"),
+    canvasEl: document.getElementById("scanCanvas"),
+    onStatus: (key) => {
+      if (key === "error.cameraError") { document.getElementById("resultWrap").innerHTML = `<div class="status-banner status-invalid">${esc(t("verify.cameraError"))}</div>`; document.getElementById("scanPanel").classList.add("hidden"); }
+      else if (key === "error.cameraUnsupported") { document.getElementById("resultWrap").innerHTML = `<div class="status-banner status-invalid">${esc(t("verify.cameraUnsupported"))}</div>`; }
+      else if (key === "error.noQrInPhoto") { document.getElementById("resultWrap").innerHTML = `<div class="status-banner status-invalid">${esc(t("verify.noQrInPhoto"))}</div>`; }
+      else setScanStatus(key);
+    },
+    onResult: (text) => { document.getElementById("scanPanel").classList.add("hidden"); handleScanResult(text); }
+  });
+
+  async function handleScanResult(text) {
+    const found = extractFromScan(text);
+    if (!found) {
+      document.getElementById("resultWrap").innerHTML = `<div class="status-banner status-invalid">${esc(t("verify.notACertificateQr"))}</div>`;
+      return;
+    }
+    if (found.token) await checkByToken(found.token);
+    else {
+      document.getElementById("certInput").value = found.number.toUpperCase();
+      await checkCertificate(found.number);
+    }
+  }
+
+  document.getElementById("scanBtn").addEventListener("click", async () => {
+    if (scanner.isRunning()) { scanner.stop(); document.getElementById("scanPanel").classList.add("hidden"); return; }
+    document.getElementById("resultWrap").innerHTML = "";
+    document.getElementById("scanPanel").classList.remove("hidden");
+    const ok = await scanner.start();
+    if (!ok) document.getElementById("scanPanel").classList.add("hidden");
+  });
+  document.getElementById("scanStopBtn").addEventListener("click", () => { scanner.stop(); document.getElementById("scanPanel").classList.add("hidden"); });
+
+  // Fallback for phones/browsers where live camera access is blocked: take or pick a photo of the QR.
+  document.getElementById("scanPhotoInput").addEventListener("change", (e) => {
+    const file = e.target.files && e.target.files[0];
+    e.target.value = "";
+    if (!file) return;
+    document.getElementById("resultWrap").innerHTML = "";
+    scanner.scanPhotoFile(file);
+  });
 
   document.getElementById("checkBtn").addEventListener("click", () => {
     const val = document.getElementById("certInput").value.trim();

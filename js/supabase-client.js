@@ -32,27 +32,39 @@ async function createInductee(payload) {
 }
 
 // ---------- Certificates ----------
-// Certificate numbers are scoped per event: MM-{EVENT_CODE}-0001, 0002, ...
-// The sequence increment happens in the database (next_event_cert_sequence)
-// so two people finishing at the same moment can never collide on a number.
+// Certificate numbers are scoped per event: MM-{EVENT_CODE}-0001-A3F9, ...
+// The sequential part (0001, 0002...) still increments in the database
+// (next_event_cert_sequence) so two people finishing at the same moment can
+// never collide, and admin listings still sort/scan naturally. The trailing
+// 4 characters are random, generated on THIS device, and are what stop the
+// number being guessable — knowing "0001" exists tells you nothing about
+// what follows it, so someone can't find a neighbouring real certificate by
+// trying nearby numbers. It rides on the same random value as the QR token,
+// so a genuine certificate's printed number and its QR always agree.
 // Falls back to a dated random number if somehow no event is set, so
 // certificate generation never hard-fails.
-function formatFallbackCertificateNumber() {
+function randomCertSuffix(qrToken) {
+  return qrToken.replace(/-/g, "").slice(0, 4).toUpperCase();
+}
+function formatFallbackCertificateNumber(qrToken) {
   const year = new Date().getFullYear();
-  const rand = Math.floor(100000 + Math.random() * 900000);
-  return `${CERT_PREFIX}-${year}-${rand}`;
+  const rand = Math.floor(1000 + Math.random() * 9000);
+  return `${CERT_PREFIX}-${year}-${rand}-${randomCertSuffix(qrToken)}`;
 }
 
 async function createCertificate(inducteeId, event) {
+  // Generated here (not left to the database default) so the same random
+  // value can be reflected in both the QR token and the printed number.
+  const qrToken = (crypto.randomUUID ? crypto.randomUUID() : formatFallbackCertificateNumber(String(Math.random())));
   let certNumber;
   if (event && event.id && event.code) {
     const { data: seq, error: seqError } = await supabaseClient
       .rpc("next_event_cert_sequence", { p_event_id: event.id });
     if (seqError) throw seqError;
     const padded = String(seq).padStart(4, "0");
-    certNumber = `${CERT_PREFIX}-${event.code}-${padded}`;
+    certNumber = `${CERT_PREFIX}-${event.code}-${padded}-${randomCertSuffix(qrToken)}`;
   } else {
-    certNumber = formatFallbackCertificateNumber();
+    certNumber = formatFallbackCertificateNumber(qrToken);
   }
 
   const { data, error } = await supabaseClient
@@ -60,6 +72,7 @@ async function createCertificate(inducteeId, event) {
     .insert({
       inductee_id: inducteeId,
       certificate_number: certNumber,
+      qr_token: qrToken,
       event_id: event ? event.id : null
     })
     .select()
@@ -90,7 +103,7 @@ async function getAllEvents() {
   return data;
 }
 
-async function createEvent({ name, code, status, buildUpStart, buildUpEnd, eventStart, eventEnd, breakdownStart, breakdownEnd, location, country, brandColor, accentColor, logoUrl }) {
+async function createEvent({ name, code, status, buildUpStart, buildUpEnd, eventStart, eventEnd, breakdownStart, breakdownEnd, location, country, brandColor, accentColor, logoUrl, marshalPin }) {
   const { data, error } = await supabaseClient
     .from("events")
     .insert({
@@ -107,7 +120,8 @@ async function createEvent({ name, code, status, buildUpStart, buildUpEnd, event
       country: country || null,
       brand_color: brandColor || null,
       brand_color_accent: accentColor || null,
-      logo_url: logoUrl || null
+      logo_url: logoUrl || null,
+      marshal_pin: marshalPin || null
     })
     .select()
     .single();
@@ -115,7 +129,7 @@ async function createEvent({ name, code, status, buildUpStart, buildUpEnd, event
   return data;
 }
 
-async function updateEvent(eventId, { name, code, status, buildUpStart, buildUpEnd, eventStart, eventEnd, breakdownStart, breakdownEnd, location, brandColor, accentColor, logoUrl }) {
+async function updateEvent(eventId, { name, code, status, buildUpStart, buildUpEnd, eventStart, eventEnd, breakdownStart, breakdownEnd, location, brandColor, accentColor, logoUrl, marshalPin }) {
   const payload = {};
   if (name !== undefined) payload.name = name;
   if (code !== undefined) payload.code = code.toUpperCase().replace(/\s+/g, "");
@@ -130,6 +144,7 @@ async function updateEvent(eventId, { name, code, status, buildUpStart, buildUpE
   if (brandColor !== undefined) payload.brand_color = brandColor || null;
   if (accentColor !== undefined) payload.brand_color_accent = accentColor || null;
   if (logoUrl !== undefined) payload.logo_url = logoUrl; // undefined = leave untouched, null = clear it
+  if (marshalPin !== undefined) payload.marshal_pin = marshalPin || null;
   const { data, error } = await supabaseClient
     .from("events")
     .update(payload)
@@ -177,6 +192,20 @@ async function uploadEventLogo(file, eventCode) {
   return data.publicUrl;
 }
 
+async function getAttendanceReport(eventId) {
+  const { data: inducted, error: e1 } = await supabaseClient
+    .from("inducted_by_company").select("*").eq("event_id", eventId);
+  if (e1) throw e1;
+  const { data: byDay, error: e2 } = await supabaseClient
+    .from("attendance_by_company_day").select("*").eq("event_id", eventId).order("scan_date");
+  if (e2) throw e2;
+  const { data: detail, error: e3 } = await supabaseClient
+    .from("attendance_scans").select("scan_date, marshal_name, inductees(full_name, company_or_sponsor, id_or_passport_number)")
+    .eq("event_id", eventId).order("scan_date");
+  if (e3) throw e3;
+  return { inducted: inducted || [], byDay: byDay || [], detail: detail || [] };
+}
+
 async function updateEventStatus(eventId, status) {
   const { data, error } = await supabaseClient
     .from("events")
@@ -194,7 +223,7 @@ async function verifyByToken(token) {
     .from("certificates")
     .select(`
       id, certificate_number, qr_token, issued_at, valid, verified_count,
-      inductees ( full_name, company_or_sponsor, site_or_event, induction_date ),
+      inductees ( full_name, id_or_passport_number, company_or_sponsor, site_or_event, induction_date, photo_data ),
       events ( name, code, status, brand_color, brand_color_accent, logo_url )
     `)
     .eq("qr_token", token)
@@ -208,7 +237,7 @@ async function verifyByCertificateNumber(certNumber) {
     .from("certificates")
     .select(`
       id, certificate_number, qr_token, issued_at, valid, verified_count,
-      inductees ( full_name, company_or_sponsor, site_or_event, induction_date ),
+      inductees ( full_name, id_or_passport_number, company_or_sponsor, site_or_event, induction_date, photo_data ),
       events ( name, code, status, brand_color, brand_color_accent, logo_url )
     `)
     .eq("certificate_number", certNumber.trim().toUpperCase())

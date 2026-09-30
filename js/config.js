@@ -29,7 +29,9 @@ const BRAND = {
 };
 
 // --- Languages available in the language switcher ---
-const SUPPORTED_LANGUAGES = ["en", "ar"];
+const SUPPORTED_LANGUAGES = ["en", "ar", "hi"];
+// Names shown in the language switcher (each in its own script so a reader can find theirs)
+const LANGUAGE_LABELS = { en: "English", ar: "العربية", hi: "हिन्दी" };
 
 // --- Mandatory pre-induction safety video (per language) ---
 // Continue is locked on stepVideo until the video for the inductee's
@@ -37,7 +39,8 @@ const SUPPORTED_LANGUAGES = ["en", "ar"];
 // files are ready — no other code changes needed.
 const INDUCTION_VIDEO = {
   en: "assets/induction-video-en.mp4",
-  ar: "assets/induction-video-ar.mp4"
+  ar: "assets/induction-video-ar.mp4",
+  hi: "assets/induction-video-hi.mp4"   // if this file is missing the portal falls back to the English video (see goToVideoGate)
 };
 const DEFAULT_LANGUAGE = "en";
 

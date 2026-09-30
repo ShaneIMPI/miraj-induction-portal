@@ -5,6 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Safety Induction — Miraj Media</title>
 <link rel="stylesheet" href="css/styles.css">
+<style>
+  .group-cert-row { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:12px 0; border-bottom:1px solid #E3E6EE; }
+  .group-cert-row .btn { width:auto; padding:8px 14px; white-space:nowrap; }
+</style>
 </head>
 <body>
 
@@ -278,7 +282,7 @@
     <button class="btn btn-primary" id="membersNextBtn" data-i18n="form.next">Next</button>
   </section>
 
-  <!-- STEP: Mandatory safety video (shown once per session, before Topics). Continue stays disabled until the video's native "ended" event fires, and forward-seeking is blocked in induction-flow.js so it can't be skipped by dragging the progress bar. --><section id="stepVideo" class="card hidden"><h2 data-i18n="video.heading">Safety Induction Video</h2><p data-i18n="video.instruction">Please watch the full video before continuing. The Continue button unlocks once it ends.</p><video id="inductionVideo" controls controlsList="nodownload noplaybackrate noremoteplayback" disablePictureInPicture playsinline style="width:100%; border-radius:10px; background:#000; margin:14px 0;" oncontextmenu="return false;"></video><button class="btn btn-primary" id="videoContinueBtn" data-i18n="video.continueBtn" disabled>Continue</button></section><!-- STEP: Topics (shown once per person being inducted) -->
+  <!-- STEP: Mandatory safety video (shown once per session, before Topics). Continue stays disabled until the video's native "ended" event fires, and forward-seeking is blocked in induction-flow.js so it can't be skipped by dragging the progress bar. --><section id="stepVideo" class="card hidden"><h2 data-i18n="video.heading">Safety Induction Video</h2><p data-i18n="video.instruction">Please watch the full video before continuing. The Continue button unlocks once it ends.</p><video id="inductionVideo" controls controlsList="nodownload noplaybackrate noremoteplayback" disablePictureInPicture playsinline style="width:100%; border-radius:10px; background:#000; margin:14px 0;" oncontextmenu="return false;"></video><p id="videoNotice" class="cert-meta hidden" style="color:#B45309; font-weight:600;"></p><button class="btn btn-primary" id="videoContinueBtn" data-i18n="video.continueBtn" disabled>Continue</button></section><!-- STEP: Topics (shown once per person being inducted) -->
   <section id="stepTopics" class="card hidden">
     <h2 data-i18n="topics.heading">Safety Induction Topics</h2>
     <p class="subheading" data-i18n="topics.instructions">Read each topic, then answer the question correctly to continue.</p>
@@ -302,9 +306,26 @@
   </section>
 
   <!-- STEP: Signature -->
+  <section id="stepPhoto" class="card hidden">
+    <h2 data-i18n="photo.heading">Photo</h2>
+    <p class="subheading" id="photoInstructions" data-i18n="photo.instructions">This photo is shown on your certificate so it can be checked against you in person.</p>
+    <p id="photoMemberName" class="cert-meta hidden"></p>
+    <div class="photo-frame">
+      <video id="photoVideo" playsinline muted autoplay></video>
+      <img id="photoPreview" class="hidden" alt="">
+    </div>
+    <canvas id="photoCanvas" class="hidden"></canvas>
+    <p id="photoError" class="hidden" style="color:#9A2E28; text-align:center;"></p>
+    <div class="photo-actions">
+      <button type="button" class="btn btn-primary" id="captureBtn" data-i18n="photo.capture">Capture</button>
+      <button type="button" class="btn btn-outline hidden" id="retakeBtn" data-i18n="photo.retake">Retake</button>
+      <button type="button" class="btn btn-primary hidden" id="photoNextBtn" data-i18n="photo.next">Next</button>
+    </div>
+  </section>
+
   <section id="stepSignature" class="card hidden">
     <h2 data-i18n="signature.heading">Signature</h2>
-    <p class="subheading" data-i18n="signature.instructions">Please sign below to confirm you have completed this induction.</p>
+    <p class="subheading" id="signatureInstructions" data-i18n="signature.instructions">Please sign below to confirm you have completed this induction.</p>
     <div class="sig-wrap"><canvas id="sigPad"></canvas></div>
     <div class="field-error" id="err-signature" data-i18n="signature.required"></div>
     <button class="btn btn-outline" id="clearSigBtn" data-i18n="signature.clear" style="margin-top:12px;">Clear</button>
@@ -316,6 +337,7 @@
     <div id="certGenerating" style="text-align:center;">
       <div class="spinner"></div>
       <p data-i18n="certificate.generating">Generating your certificate…</p>
+      <p id="groupProgress" class="cert-meta"></p>
     </div>
     <div id="certResult" class="hidden">
       <div class="cert-box" id="certBox">
@@ -328,8 +350,17 @@
         <div class="cert-meta" data-i18n="certificate.scanToVerify">Scan to verify</div>
       </div>
       <button class="btn btn-primary" id="downloadCertBtn" style="margin-top:16px;" data-i18n="certificate.download">Download Certificate</button>
+
+      <!-- Group flow: one row per member, plus a single "download all" PDF -->
+      <div id="groupCertBlock" class="hidden">
+        <h2 data-i18n="certificate.groupHeading">Certificates issued for every member</h2>
+        <p class="subheading" data-i18n="certificate.groupInstructions">Each person has their own certificate with its own number and QR code.</p>
+        <div id="groupCertList"></div>
+        <button class="btn btn-primary" id="downloadAllCertsBtn" style="margin-top:16px;" data-i18n="certificate.downloadAll">Download all certificates (one PDF)</button>
+      </div>
+
       <button class="btn btn-accent hidden" id="nextMemberBtn" data-i18n="form.next">Next</button>
-      <a class="link-quiet" href="index.html" id="doneLink">Home</a>
+      <a class="link-quiet" href="index.html" id="doneLink" data-i18n="nav.home">Home</a>
     </div>
     <div id="certError" class="hidden" style="text-align:center;">
       <p style="color:#C0392B; font-weight:700;" data-i18n="certificate.retry">Certificate generation failed — Retry</p>
@@ -338,6 +369,16 @@
   </section>
 
 </main>
+
+<!-- Off-screen container used to draw each group member's QR code into the PDF -->
+<style>
+  .photo-frame { width:220px; height:220px; border-radius:12px; overflow:hidden; margin:14px auto; background:#000; position:relative; }
+  .photo-frame video, .photo-frame img { width:100%; height:100%; object-fit:cover; display:block; }
+  .photo-actions { display:flex; gap:10px; justify-content:center; margin-top:10px; }
+  .photo-actions .btn { width:auto; padding:10px 20px; }
+</style>
+
+<div id="groupQrContainer" style="position:absolute; left:-9999px; top:-9999px;"></div>
 
 <footer class="app-footer">Miraj Media &middot; Safety Induction Portal</footer>
 
@@ -350,6 +391,7 @@
 <script src="js/i18n.js"></script>
 <script src="js/supabase-client.js"></script>
 <script src="js/certificate.js"></script>
+<script src="js/photo-capture.js"></script>
 <script src="js/induction-flow.js"></script>
 </body>
 </html>
