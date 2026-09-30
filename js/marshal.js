@@ -18,7 +18,24 @@ function loadState() {
   try { return JSON.parse(localStorage.getItem(LS_KEY)) || {}; }
   catch (e) { return {}; }
 }
-function saveState(s) { localStorage.setItem(LS_KEY, JSON.stringify(s)); }
+function saveState(s) {
+    try {
+          localStorage.setItem(LS_KEY, JSON.stringify(s));
+    } catch (e) {
+          // Storage is full — most likely because OTHER tools sharing this same
+          // shaneimpi.github.io origin have already used up the shared quota, not
+          // because of anything wrong here. Never let that stop scanning: drop the
+          // (large) roster from what's persisted and keep only the essentials, so
+          // this session keeps working even if the roster can't survive a reload.
+          console.warn("localStorage full, saving without the cached roster:", e);
+          try {
+                  const essential = Object.assign({}, s, { roster: [] });
+                  localStorage.setItem(LS_KEY, JSON.stringify(essential));
+          } catch (e2) {
+                  console.warn("Could not save any marshal state to localStorage:", e2);
+          }
+    }
+}
 
 let M = Object.assign({ eventId: null, eventName: null, pin: null, marshalName: "", roster: [], rosterAt: null, queue: [] }, loadState());
 
