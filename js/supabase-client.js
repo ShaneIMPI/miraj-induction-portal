@@ -192,18 +192,22 @@ async function uploadEventLogo(file, eventCode) {
   return data.publicUrl;
 }
 
+// Person-level attendance: every inductee for the event (so someone who
+// never arrived still shows up with blank days), each with their scans.
+// The caller pivots scans into one column per date.
 async function getAttendanceReport(eventId) {
-  const { data: inducted, error: e1 } = await supabaseClient
-    .from("inducted_by_company").select("*").eq("event_id", eventId);
+  const { data: inductees, error: e1 } = await supabaseClient
+    .from("inductees")
+    .select("id, full_name, id_or_passport_number, company_or_sponsor, sponsor_type, certificates(certificate_number)")
+    .eq("event_id", eventId)
+    .order("full_name");
   if (e1) throw e1;
-  const { data: byDay, error: e2 } = await supabaseClient
-    .from("attendance_by_company_day").select("*").eq("event_id", eventId).order("scan_date");
+  const { data: scans, error: e2 } = await supabaseClient
+    .from("attendance_scans")
+    .select("inductee_id, scan_date, scanned_at")
+    .eq("event_id", eventId);
   if (e2) throw e2;
-  const { data: detail, error: e3 } = await supabaseClient
-    .from("attendance_scans").select("scan_date, marshal_name, inductees(full_name, company_or_sponsor, id_or_passport_number)")
-    .eq("event_id", eventId).order("scan_date");
-  if (e3) throw e3;
-  return { inducted: inducted || [], byDay: byDay || [], detail: detail || [] };
+  return { inductees: inductees || [], scans: scans || [] };
 }
 
 async function updateEventStatus(eventId, status) {

@@ -161,7 +161,14 @@
     "downloadDetailCsv": "Download detail CSV (every scan)",
     "noAttendance": "No arrivals recorded yet for this event.",
     "companyOrSponsor": "Company / Sponsor",
-    "inducted": "Inducted"
+    "inducted": "Inducted",
+    "allCompanies": "All companies",
+    "fullName": "Name and Surname",
+    "idPassport": "ID / Passport",
+    "sponsorTypeShort": "Type",
+    "certNumberShort": "Certificate #",
+    "peopleShown": "people shown",
+    "downloadAttendanceCsv": "Download CSV (matches what's shown below)"
   },
   "quiz": {
     "correct": "Correct — well done. Moving to the next topic.",

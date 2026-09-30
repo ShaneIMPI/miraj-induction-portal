@@ -162,7 +162,14 @@
     "downloadDetailCsv": "تنزيل تفاصيل CSV (كل عملية مسح)",
     "noAttendance": "لم يُسجَّل أي حضور بعد لهذه الفعالية.",
     "companyOrSponsor": "الشركة / الراعي",
-    "inducted": "أكملوا التوجيه"
+    "inducted": "أكملوا التوجيه",
+    "allCompanies": "كل الشركات",
+    "fullName": "الاسم الكامل",
+    "idPassport": "الهوية / جواز السفر",
+    "sponsorTypeShort": "النوع",
+    "certNumberShort": "رقم الشهادة",
+    "peopleShown": "شخصًا معروضًا",
+    "downloadAttendanceCsv": "تنزيل CSV (مطابق لما هو معروض أدناه)"
   },
   "quiz": {
     "correct": "إجابة صحيحة — أحسنت. الانتقال إلى الموضوع التالي.",

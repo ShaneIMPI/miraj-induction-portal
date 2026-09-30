@@ -161,7 +161,14 @@
     "downloadDetailCsv": "विस्तृत CSV डाउनलोड करें (हर स्कैन)",
     "noAttendance": "इस इवेंट के लिए अभी तक कोई उपस्थिति दर्ज नहीं हुई है।",
     "companyOrSponsor": "कंपनी / प्रायोजक",
-    "inducted": "इंडक्शन पूरा"
+    "inducted": "इंडक्शन पूरा",
+    "allCompanies": "सभी कंपनियाँ",
+    "fullName": "पूरा नाम",
+    "idPassport": "पहचान पत्र / पासपोर्ट",
+    "sponsorTypeShort": "प्रकार",
+    "certNumberShort": "प्रमाणपत्र संख्या",
+    "peopleShown": "लोग दिखाए गए",
+    "downloadAttendanceCsv": "CSV डाउनलोड करें (नीचे दिखाए अनुसार)"
   },
   "quiz": {
     "correct": "सही — बहुत बढ़िया। अगले विषय पर जा रहे हैं।",

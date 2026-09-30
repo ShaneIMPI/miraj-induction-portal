@@ -186,14 +186,16 @@
         <p class="subheading" data-i18n="admin.attendanceInstructions">Arrivals recorded by marshals scanning certificates each day. Figures update once a marshal's phone has synced.</p>
         <label data-i18n="admin.event">Event</label>
         <select id="attendanceEventSelect"></select>
+        <label style="margin-top:10px;" data-i18n="admin.companyOrSponsor">Company / Sponsor</label>
+        <select id="attendanceCompanyFilter"></select>
+        <p id="attendanceCount" class="cert-meta" style="margin-top:8px; font-weight:600;"></p>
         <div style="display:flex; gap:10px; margin-top:10px; flex-wrap:wrap;">
-          <button class="btn btn-outline" id="downloadAttendanceSummaryBtn" style="width:auto;" data-i18n="admin.downloadSummaryCsv">Download summary CSV (company &times; day)</button>
-          <button class="btn btn-outline" id="downloadAttendanceDetailBtn" style="width:auto;" data-i18n="admin.downloadDetailCsv">Download detail CSV (every scan)</button>
+          <button class="btn btn-outline" id="downloadAttendanceBtn" style="width:auto;" data-i18n="admin.downloadAttendanceCsv">Download CSV (matches what's shown below)</button>
         </div>
         <div class="table-scroll" style="margin-top:16px;">
           <table id="attendanceTable"><thead></thead><tbody></tbody></table>
         </div>
-        <p id="attendanceEmpty" class="cert-meta hidden" data-i18n="admin.noAttendance">No arrivals recorded yet for this event.</p>
+        <p id="attendanceEmpty" class="cert-meta hidden" data-i18n="admin.noAttendance">No inductees yet for this event.</p>
       </div>
     </div>
   </section>
@@ -428,12 +430,19 @@
     if (sel.value) await renderAttendanceReport(sel.value);
   }
   document.getElementById("attendanceEventSelect").addEventListener("change", (e) => renderAttendanceReport(e.target.value));
+  document.getElementById("attendanceCompanyFilter").addEventListener("change", renderAttendanceTable);
 
-  let lastAttendanceReport = null;
+  // certificates comes back as an array from the join (Supabase doesn't know
+  // it's 1:1) — an inductee only ever has one, so just take the first.
+  function attCertOf(r) {
+    return (r.certificates && r.certificates[0] && r.certificates[0].certificate_number) || "-";
+  }
+
+  let lastAttendanceReport = null; // { eventId, inductees, scans, days }
 
   async function renderAttendanceReport(eventId) {
-    const table = document.getElementById("attendanceTable");
     const emptyEl = document.getElementById("attendanceEmpty");
+    const table = document.getElementById("attendanceTable");
     if (!eventId) { table.querySelector("thead").innerHTML = ""; table.querySelector("tbody").innerHTML = ""; return; }
     let report;
     try {
@@ -442,48 +451,78 @@
       console.error(err);
       return;
     }
-    lastAttendanceReport = { eventId, ...report };
+    const days = [...new Set(report.scans.map(r => r.scan_date))].sort();
+    lastAttendanceReport = { eventId, inductees: report.inductees, scans: report.scans, days };
+    emptyEl.classList.toggle("hidden", report.inductees.length > 0);
 
-    const days = [...new Set(report.byDay.map(r => r.scan_date))].sort();
-    const companies = [...new Set(report.inducted.map(r => r.company_or_sponsor))].sort();
-    emptyEl.classList.toggle("hidden", days.length > 0);
+    // Company filter options, built from this event's actual inductees.
+    const companySel = document.getElementById("attendanceCompanyFilter");
+    const currentCompany = companySel.value;
+    const companies = [...new Set(report.inductees.map(r => r.company_or_sponsor))].sort();
+    companySel.innerHTML = `<option value="">${esc(t("admin.allCompanies") || "All companies")}</option>` +
+      companies.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join("");
+    if (companies.includes(currentCompany)) companySel.value = currentCompany;
 
-    const thead = table.querySelector("thead");
-    const tbody = table.querySelector("tbody");
-    thead.innerHTML = `<tr><th>${esc(t("admin.companyOrSponsor") || "Company")}</th><th>${esc(t("admin.inducted") || "Inducted")}</th>` +
-      days.map(d => `<th>${esc(d)}</th>`).join("") + `</tr>`;
-
-    const byKey = {};
-    report.byDay.forEach(r => { byKey[r.company_or_sponsor + "|" + r.scan_date] = r.arrived_count; });
-    const totalByCompany = {};
-    report.inducted.forEach(r => { totalByCompany[r.company_or_sponsor] = r.inducted_count; });
-
-    tbody.innerHTML = companies.map(c => {
-      const cells = days.map(d => `<td>${byKey[c + "|" + d] != null ? byKey[c + "|" + d] : "—"}</td>`).join("");
-      return `<tr><td>${esc(c)}</td><td>${totalByCompany[c] || 0}</td>${cells}</tr>`;
-    }).join("");
+    renderAttendanceTable();
   }
 
-  document.getElementById("downloadAttendanceSummaryBtn").addEventListener("click", () => {
+  // Re-renders from already-fetched data — no network call — so the company
+  // filter feels instant.
+  function renderAttendanceTable() {
     if (!lastAttendanceReport) return;
-    const { inducted, byDay } = lastAttendanceReport;
-    const days = [...new Set(byDay.map(r => r.scan_date))].sort();
-    const companies = [...new Set(inducted.map(r => r.company_or_sponsor))].sort();
-    const byKey = {}; byDay.forEach(r => { byKey[r.company_or_sponsor + "|" + r.scan_date] = r.arrived_count; });
-    const totalByCompany = {}; inducted.forEach(r => { totalByCompany[r.company_or_sponsor] = r.inducted_count; });
-    const rows = [["Company", "Inducted", ...days]];
-    companies.forEach(c => rows.push([c, totalByCompany[c] || 0, ...days.map(d => byKey[c + "|" + d] || 0)]));
-    downloadCsv("attendance-summary.csv", rows);
-  });
+    const { inductees, scans, days } = lastAttendanceReport;
+    const company = document.getElementById("attendanceCompanyFilter").value;
+    const rows = company ? inductees.filter(r => r.company_or_sponsor === company) : inductees;
 
-  document.getElementById("downloadAttendanceDetailBtn").addEventListener("click", () => {
-    if (!lastAttendanceReport) return;
-    const rows = [["Date", "Name", "Company", "ID / Passport", "Marshal"]];
-    lastAttendanceReport.detail.forEach(r => {
-      const ind = r.inductees || {};
-      rows.push([r.scan_date, ind.full_name || "", ind.company_or_sponsor || "", ind.id_or_passport_number || "", r.marshal_name || ""]);
+    // inductee_id + date -> arrival time (HH:MM), for instant per-cell lookup.
+    const scanByKey = {};
+    scans.forEach(s => {
+      scanByKey[s.inductee_id + "|" + s.scan_date] = new Date(s.scanned_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
     });
-    downloadCsv("attendance-detail.csv", rows);
+
+    const table = document.getElementById("attendanceTable");
+    const thead = table.querySelector("thead");
+    const tbody = table.querySelector("tbody");
+    thead.innerHTML = `<tr>
+        <th>${esc(t("admin.fullName") || "Name and Surname")}</th>
+        <th>${esc(t("admin.idPassport") || "ID / Passport")}</th>
+        <th>${esc(t("admin.companyOrSponsor") || "Company")}</th>
+        <th>${esc(t("admin.sponsorTypeShort") || "Type")}</th>
+        <th>${esc(t("admin.certNumberShort") || "Certificate #")}</th>
+        ${days.map(d => `<th>${esc(d)}</th>`).join("")}
+      </tr>`;
+    tbody.innerHTML = rows.map(r => {
+      const cells = days.map(d => `<td>${esc(scanByKey[r.id + "|" + d] || "—")}</td>`).join("");
+      return `<tr>
+          <td>${esc(r.full_name)}</td>
+          <td>${esc(r.id_or_passport_number)}</td>
+          <td>${esc(r.company_or_sponsor)}</td>
+          <td>${esc(r.sponsor_type)}</td>
+          <td>${esc(attCertOf(r))}</td>
+          ${cells}
+        </tr>`;
+    }).join("");
+
+    const countLabel = t("admin.peopleShown") || "people shown";
+    document.getElementById("attendanceCount").textContent = `${rows.length} ${countLabel}`;
+  }
+
+  document.getElementById("downloadAttendanceBtn").addEventListener("click", () => {
+    if (!lastAttendanceReport) return;
+    const { scans, days } = lastAttendanceReport;
+    const company = document.getElementById("attendanceCompanyFilter").value;
+    const rows = company ? lastAttendanceReport.inductees.filter(r => r.company_or_sponsor === company) : lastAttendanceReport.inductees;
+    const scanByKey = {};
+    scans.forEach(s => {
+      scanByKey[s.inductee_id + "|" + s.scan_date] = new Date(s.scanned_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    });
+    const csvRows = [["Name and Surname", "ID/Passport", "Company", "Type", "Certificate #", ...days]];
+    rows.forEach(r => {
+      csvRows.push([r.full_name, r.id_or_passport_number, r.company_or_sponsor, r.sponsor_type, attCertOf(r),
+        ...days.map(d => scanByKey[r.id + "|" + d] || "")]);
+    });
+    const filename = company ? `attendance-${company.replace(/[^a-z0-9]+/gi, "-")}.csv` : "attendance-all.csv";
+    downloadCsv(filename, csvRows);
   });
 
   async function populateEventFilter() {
